@@ -101,6 +101,18 @@ export function usePantryItems() {
     );
   };
 
+  const deleteAllItems = async (): Promise<void> => {
+    if (!user) throw new Error("User not authenticated");
+    if (!db) throw new Error("Database not initialized");
+
+    const database = db;
+    await Promise.all(
+      items.map((item) =>
+        deleteDoc(doc(database, "users", user.uid, "pantryItems", item.id))
+      )
+    );
+  };
+
   return {
     items,
     loading,
@@ -109,5 +121,6 @@ export function usePantryItems() {
     updateItem,
     deleteItem,
     addMultipleItems,
+    deleteAllItems,
   };
 }

@@ -5,12 +5,15 @@ import { usePantryItems } from "@/hooks/usePantryItems";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 import { EditItemDialog } from "@/components/inventory/EditItemDialog";
 import { PantryItemCard } from "@/components/inventory/PantryItemCard";
+import { PantryItemRow } from "@/components/inventory/PantryItemRow";
 import { ScanProductButton } from "@/components/inventory/ScanProductButton";
 import { ScanReceiptButton } from "@/components/inventory/ScanReceiptButton";
+import { BulkUploadButton } from "@/components/inventory/BulkUploadButton";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Package, AlertTriangle, Loader2 } from "lucide-react";
+import { Search, Package, AlertTriangle, Loader2, LayoutGrid, List } from "lucide-react";
 import type { PantryItem } from "@/types";
 
 function getExpiringItemsCount(items: PantryItem[]): number {
@@ -34,10 +37,11 @@ function getExpiredItemsCount(items: PantryItem[]): number {
 }
 
 export default function InventoryPage() {
-  const { items, loading, addItem, updateItem, deleteItem, addMultipleItems } =
+  const { items, loading, addItem, updateItem, deleteItem, addMultipleItems, deleteAllItems } =
     usePantryItems();
   const [searchQuery, setSearchQuery] = useState("");
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const { toast } = useToast();
 
   const filteredItems = useMemo(() => {
@@ -128,6 +132,7 @@ export default function InventoryPage() {
         <div className="flex flex-wrap gap-2">
           <ScanProductButton onAdd={handleAddItem} />
           <ScanReceiptButton onAddMultiple={handleAddMultipleItems} />
+          <BulkUploadButton onAddMultiple={handleAddMultipleItems} onDeleteAll={deleteAllItems} />
           <AddItemDialog onAdd={handleAddItem} />
         </div>
       </div>
@@ -153,14 +158,34 @@ export default function InventoryPage() {
         </Alert>
       )}
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar productos..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar productos..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex items-center gap-1 border rounded-md p-1">
+          <Button
+            variant={viewMode === "cards" ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode("cards")}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode("list")}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {filteredItems.length === 0 ? (
@@ -173,10 +198,21 @@ export default function InventoryPage() {
               : "Comienza agregando productos a tu despensa"}
           </p>
         </div>
-      ) : (
+      ) : viewMode === "cards" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((item) => (
             <PantryItemCard
+              key={item.id}
+              item={item}
+              onEdit={setEditingItem}
+              onDelete={handleDeleteItem}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="border rounded-lg divide-y">
+          {filteredItems.map((item) => (
+            <PantryItemRow
               key={item.id}
               item={item}
               onEdit={setEditingItem}

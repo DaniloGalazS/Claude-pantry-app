@@ -112,15 +112,10 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de codigo markdown.`,
     try {
       // Clean the response - remove markdown code blocks if present
       let jsonText = textContent.text.trim();
-      if (jsonText.startsWith("```json")) {
-        jsonText = jsonText.slice(7);
-      } else if (jsonText.startsWith("```")) {
-        jsonText = jsonText.slice(3);
+      const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        jsonText = codeBlockMatch[1].trim();
       }
-      if (jsonText.endsWith("```")) {
-        jsonText = jsonText.slice(0, -3);
-      }
-      jsonText = jsonText.trim();
 
       const result = JSON.parse(jsonText);
       console.log("Successfully parsed", result.recipes?.length, "recipes");

@@ -77,7 +77,13 @@ Responde SOLO con el JSON, sin texto adicional.`,
     }
 
     try {
-      const result = JSON.parse(textContent.text);
+      // Claude sometimes wraps JSON in markdown code blocks
+      let jsonText = textContent.text.trim();
+      const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        jsonText = codeBlockMatch[1].trim();
+      }
+      const result = JSON.parse(jsonText);
       return NextResponse.json(result);
     } catch {
       return NextResponse.json(

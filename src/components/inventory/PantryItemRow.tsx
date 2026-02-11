@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Timestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, Clock, Package } from "lucide-react";
+import { ImagePreviewDialog } from "./ImagePreviewDialog";
 import type { PantryItem } from "@/types";
 
 interface PantryItemRowProps {
@@ -31,6 +32,7 @@ function getExpirationStatus(expirationDate: Timestamp | null): {
 
 export function PantryItemRow({ item, onEdit, onDelete }: PantryItemRowProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showImage, setShowImage] = useState(false);
   const { status, daysLeft } = getExpirationStatus(item.expirationDate);
 
   const handleDelete = async () => {
@@ -50,16 +52,37 @@ export function PantryItemRow({ item, onEdit, onDelete }: PantryItemRowProps) {
     });
   };
 
+  const bgClass =
+    status === "expired"
+      ? "bg-destructive/3"
+      : status === "warning"
+      ? "bg-warning/3"
+      : "";
+
   return (
+    <>
     <div
-      className={`flex items-center gap-4 px-4 py-3 border-b last:border-b-0 hover:bg-muted/50 ${
-        status === "expired"
-          ? "bg-destructive/5"
-          : status === "warning"
-          ? "bg-yellow-500/5"
-          : ""
-      }`}
+      className={`flex items-center gap-4 px-5 py-3.5 border-b last:border-b-0 hover:bg-muted/40 transition-colors group ${bgClass}`}
     >
+      {/* Thumbnail */}
+      {item.imageUrl ? (
+        <button
+          onClick={() => setShowImage(true)}
+          className="w-8 h-8 rounded-md overflow-hidden shrink-0 border border-border/60 hover:ring-2 hover:ring-primary/30 transition-all"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            className="w-full h-full object-cover"
+          />
+        </button>
+      ) : (
+        <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+          <Package className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+
       {/* Name and badge */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <span className="font-medium truncate">{item.name}</span>
@@ -71,7 +94,7 @@ export function PantryItemRow({ item, onEdit, onDelete }: PantryItemRowProps) {
         )}
         {status === "warning" && (
           <Badge variant="warning" className="text-xs shrink-0">
-            <AlertTriangle className="mr-1 h-3 w-3" />
+            <Clock className="mr-1 h-3 w-3" />
             {daysLeft === 0
               ? "Hoy"
               : daysLeft === 1
@@ -82,7 +105,7 @@ export function PantryItemRow({ item, onEdit, onDelete }: PantryItemRowProps) {
       </div>
 
       {/* Quantity */}
-      <div className="text-sm text-muted-foreground whitespace-nowrap w-24 text-right">
+      <div className="text-sm font-medium text-primary whitespace-nowrap w-24 text-right">
         {item.quantity} {item.unit}
       </div>
 
@@ -92,7 +115,7 @@ export function PantryItemRow({ item, onEdit, onDelete }: PantryItemRowProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button
           variant="ghost"
           size="icon"
@@ -113,5 +136,14 @@ export function PantryItemRow({ item, onEdit, onDelete }: PantryItemRowProps) {
         </Button>
       </div>
     </div>
+    {item.imageUrl && (
+      <ImagePreviewDialog
+        imageUrl={item.imageUrl}
+        productName={item.name}
+        open={showImage}
+        onOpenChange={setShowImage}
+      />
+    )}
+    </>
   );
 }

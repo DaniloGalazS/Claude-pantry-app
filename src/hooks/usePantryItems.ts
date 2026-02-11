@@ -5,6 +5,7 @@ import {
   collection,
   query,
   orderBy,
+  where,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -16,21 +17,25 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import type { PantryItem } from "@/types";
 
-export function usePantryItems() {
+export function usePantryItems(pantryId: string | null) {
   const { user } = useAuth();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user || !db || !pantryId) {
       setItems([]);
       setLoading(false);
       return;
     }
 
     const itemsRef = collection(db, "users", user.uid, "pantryItems");
-    const q = query(itemsRef, orderBy("addedAt", "desc"));
+    const q = query(
+      itemsRef,
+      where("pantryId", "==", pantryId),
+      orderBy("addedAt", "desc")
+    );
 
     const unsubscribe = onSnapshot(
       q,
@@ -49,17 +54,19 @@ export function usePantryItems() {
     );
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, pantryId]);
 
   const addItem = async (
-    item: Omit<PantryItem, "id" | "addedAt">
+    item: Omit<PantryItem, "id" | "addedAt" | "pantryId">
   ): Promise<string> => {
     if (!user) throw new Error("User not authenticated");
     if (!db) throw new Error("Database not initialized");
+    if (!pantryId) throw new Error("No pantry selected");
 
     const itemsRef = collection(db, "users", user.uid, "pantryItems");
     const docRef = await addDoc(itemsRef, {
       ...item,
+      pantryId,
       addedAt: Timestamp.now(),
     });
     return docRef.id;
@@ -85,16 +92,18 @@ export function usePantryItems() {
   };
 
   const addMultipleItems = async (
-    newItems: Omit<PantryItem, "id" | "addedAt">[]
+    newItems: Omit<PantryItem, "id" | "addedAt" | "pantryId">[]
   ): Promise<void> => {
     if (!user) throw new Error("User not authenticated");
     if (!db) throw new Error("Database not initialized");
+    if (!pantryId) throw new Error("No pantry selected");
 
     const itemsRef = collection(db, "users", user.uid, "pantryItems");
     await Promise.all(
       newItems.map((item) =>
         addDoc(itemsRef, {
           ...item,
+          pantryId,
           addedAt: Timestamp.now(),
         })
       )

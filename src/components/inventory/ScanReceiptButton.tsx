@@ -24,7 +24,7 @@ interface ScannedItem {
 }
 
 interface ScanReceiptButtonProps {
-  onAddMultiple: (items: Omit<PantryItem, "id" | "addedAt">[]) => Promise<void>;
+  onAddMultiple: (items: Omit<PantryItem, "id" | "addedAt" | "pantryId">[]) => Promise<void>;
 }
 
 export function ScanReceiptButton({ onAddMultiple }: ScanReceiptButtonProps) {

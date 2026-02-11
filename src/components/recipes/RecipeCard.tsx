@@ -26,17 +26,24 @@ import {
   ShoppingCart,
   CheckCircle,
   Loader2,
+  Flame,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import type { Recipe } from "@/types";
 
 interface RecipeCardProps {
   recipe: Recipe;
   onCook: (recipe: Recipe) => Promise<void>;
+  onSave?: (recipe: Recipe) => Promise<void>;
+  onUnsave?: (recipe: Recipe) => Promise<void>;
+  isSaved?: boolean;
 }
 
-export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
+export function RecipeCard({ recipe, onCook, onSave, onUnsave, isSaved }: RecipeCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isCooking, setIsCooking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const difficultyLabels = {
     easy: "Facil",
@@ -45,9 +52,9 @@ export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
   };
 
   const difficultyColors = {
-    easy: "bg-green-100 text-green-800",
-    medium: "bg-yellow-100 text-yellow-800",
-    hard: "bg-red-100 text-red-800",
+    easy: "bg-accent text-accent-foreground",
+    medium: "bg-warning/15 text-warning-foreground",
+    hard: "bg-destructive/10 text-destructive",
   };
 
   const handleCook = async () => {
@@ -60,46 +67,58 @@ export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
     }
   };
 
+  const progressColor =
+    recipe.availablePercentage >= 90
+      ? "bg-accent-foreground"
+      : recipe.availablePercentage >= 70
+      ? "bg-primary"
+      : "bg-warning";
+
   return (
     <>
-      <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowDetails(true)}>
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between">
-            <CardTitle className="text-lg">{recipe.name}</CardTitle>
+      <Card
+        className="cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group border-border/60"
+        onClick={() => setShowDetails(true)}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-lg leading-snug group-hover:text-primary transition-colors">
+              {recipe.name}
+            </CardTitle>
             <Badge
               variant="outline"
-              className={difficultyColors[recipe.difficulty]}
+              className={`${difficultyColors[recipe.difficulty]} border-0 shrink-0`}
             >
               {difficultyLabels[recipe.difficulty]}
             </Badge>
           </div>
-          <CardDescription className="line-clamp-2">
+          <CardDescription className="line-clamp-2 mt-1">
             {recipe.description}
           </CardDescription>
         </CardHeader>
-        <CardContent className="pb-2">
+        <CardContent className="pb-3">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
-              {recipe.prepTime + recipe.cookTime} min
+              <span>{recipe.prepTime + recipe.cookTime} min</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Users className="h-4 w-4" />
-              {recipe.servings} porciones
+              <span>{recipe.servings} porciones</span>
             </div>
           </div>
         </CardContent>
-        <CardFooter className="pt-2">
-          <div className="flex items-center gap-2 w-full">
+        <CardFooter className="pt-3 border-t border-border/40">
+          <div className="flex items-center gap-3 w-full">
             <div className="flex-1">
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-primary transition-all"
+                  className={`h-full ${progressColor} rounded-full transition-all`}
                   style={{ width: `${recipe.availablePercentage}%` }}
                 />
               </div>
             </div>
-            <span className="text-sm font-medium">
+            <span className="text-sm font-medium tabular-nums">
               {recipe.availablePercentage}%
             </span>
           </div>
@@ -109,30 +128,32 @@ export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ChefHat className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-2 font-display text-2xl">
+              <ChefHat className="h-6 w-6 text-primary" />
               {recipe.name}
             </DialogTitle>
-            <DialogDescription>{recipe.description}</DialogDescription>
+            <DialogDescription className="text-base">{recipe.description}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Info */}
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
+            {/* Info pills */}
+            <div className="flex flex-wrap gap-3 text-sm">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-full">
+                <Clock className="h-4 w-4 text-muted-foreground" />
                 Prep: {recipe.prepTime} min
               </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-full">
+                <Flame className="h-4 w-4 text-muted-foreground" />
                 Coccion: {recipe.cookTime} min
               </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-full">
+                <Users className="h-4 w-4 text-muted-foreground" />
                 {recipe.servings} porciones
               </div>
               {recipe.cuisine && (
-                <Badge variant="secondary">{recipe.cuisine}</Badge>
+                <Badge variant="secondary" className="rounded-full px-3 py-1.5 text-sm font-normal">
+                  {recipe.cuisine}
+                </Badge>
               )}
             </div>
 
@@ -140,7 +161,7 @@ export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
             {recipe.dietaryTags && recipe.dietaryTags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {recipe.dietaryTags.map((tag) => (
-                  <Badge key={tag} variant="outline">
+                  <Badge key={tag} variant="outline" className="rounded-full">
                     {tag}
                   </Badge>
                 ))}
@@ -149,8 +170,8 @@ export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
 
             {/* Ingredients */}
             <div>
-              <h4 className="font-medium mb-2">Ingredientes</h4>
-              <ul className="space-y-1">
+              <h4 className="font-display text-lg mb-3">Ingredientes</h4>
+              <ul className="space-y-2">
                 {recipe.ingredients.map((ing, i) => {
                   const isMissing = recipe.missingItems.some(
                     (m) => m.name.toLowerCase() === ing.name.toLowerCase()
@@ -158,18 +179,20 @@ export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
                   return (
                     <li
                       key={i}
-                      className={`flex items-center gap-2 text-sm ${
+                      className={`flex items-center gap-2.5 text-sm ${
                         isMissing ? "text-destructive" : ""
                       }`}
                     >
                       {isMissing ? (
-                        <ShoppingCart className="h-4 w-4" />
+                        <ShoppingCart className="h-4 w-4 shrink-0" />
                       ) : (
-                        <CheckCircle className="h-4 w-4 text-primary" />
+                        <CheckCircle className="h-4 w-4 text-accent-foreground shrink-0" />
                       )}
-                      {ing.quantity} {ing.unit} de {ing.name}
+                      <span>
+                        {ing.quantity} {ing.unit} de {ing.name}
+                      </span>
                       {isMissing && (
-                        <span className="text-xs">(falta)</span>
+                        <span className="text-xs text-destructive/70">(falta)</span>
                       )}
                     </li>
                   );
@@ -179,7 +202,7 @@ export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
 
             {/* Missing items summary */}
             {recipe.missingItems.length > 0 && (
-              <div className="p-3 bg-muted rounded-lg">
+              <div className="p-4 bg-destructive/5 border border-destructive/15 rounded-xl">
                 <p className="text-sm font-medium mb-1">
                   Ingredientes por comprar ({recipe.missingItems.length}):
                 </p>
@@ -193,21 +216,49 @@ export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
 
             {/* Steps */}
             <div>
-              <h4 className="font-medium mb-2">Preparacion</h4>
-              <ol className="space-y-2">
+              <h4 className="font-display text-lg mb-3">Preparacion</h4>
+              <ol className="space-y-3">
                 {recipe.steps.map((step, i) => (
                   <li key={i} className="flex gap-3 text-sm">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                       {i + 1}
                     </span>
-                    <span>{step}</span>
+                    <span className="pt-1">{step}</span>
                   </li>
                 ))}
               </ol>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            {onSave && onUnsave && (
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  setIsSaving(true);
+                  try {
+                    if (isSaved) {
+                      await onUnsave(recipe);
+                    } else {
+                      await onSave(recipe);
+                    }
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                disabled={isSaving || isCooking}
+                className="mr-auto"
+              >
+                {isSaving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : isSaved ? (
+                  <BookmarkCheck className="mr-2 h-4 w-4 text-primary" />
+                ) : (
+                  <Bookmark className="mr-2 h-4 w-4" />
+                )}
+                {isSaved ? "Guardada" : "Guardar"}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => setShowDetails(false)}
@@ -215,7 +266,7 @@ export function RecipeCard({ recipe, onCook }: RecipeCardProps) {
             >
               Cerrar
             </Button>
-            <Button onClick={handleCook} disabled={isCooking}>
+            <Button onClick={handleCook} disabled={isCooking} className="shadow-sm">
               {isCooking ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

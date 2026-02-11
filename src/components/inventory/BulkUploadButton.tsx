@@ -118,7 +118,7 @@ type ImportMode = "add" | "replace";
 type ViewMode = "cards" | "list";
 
 interface BulkUploadButtonProps {
-  onAddMultiple: (items: Omit<PantryItem, "id" | "addedAt">[]) => Promise<void>;
+  onAddMultiple: (items: Omit<PantryItem, "id" | "addedAt" | "pantryId">[]) => Promise<void>;
   onDeleteAll: () => Promise<void>;
 }
 

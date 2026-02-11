@@ -9,7 +9,7 @@ import { Camera } from "lucide-react";
 import type { PantryItem } from "@/types";
 
 interface ScanProductButtonProps {
-  onAdd: (item: Omit<PantryItem, "id" | "addedAt">) => Promise<string>;
+  onAdd: (item: Omit<PantryItem, "id" | "addedAt" | "pantryId">) => Promise<string>;
 }
 
 export function ScanProductButton({ onAdd }: ScanProductButtonProps) {
@@ -18,6 +18,7 @@ export function ScanProductButton({ onAdd }: ScanProductButtonProps) {
     name: string;
     quantity: number;
     unit: string;
+    imageUrl?: string;
   } | null>(null);
   const { toast } = useToast();
 
@@ -45,6 +46,7 @@ export function ScanProductButton({ onAdd }: ScanProductButtonProps) {
         name: data.name,
         quantity: data.suggestedQuantity || 1,
         unit: data.suggestedUnit || "unidades",
+        imageUrl: imageBase64,
       });
 
       toast({

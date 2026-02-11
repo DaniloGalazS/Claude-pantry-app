@@ -4,48 +4,83 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 142.1 76.2% 36.3%;
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142.1 76.2% 36.3%;
-    --radius: 0.5rem;
+    /* Warm cream background */
+    --background: 40 33% 98%;
+    --foreground: 20 25% 12%;
+
+    /* Cream-tinted cards */
+    --card: 40 30% 99%;
+    --card-foreground: 20 25% 12%;
+
+    --popover: 40 30% 99%;
+    --popover-foreground: 20 25% 12%;
+
+    /* Terracotta primary - warm, food-inspired */
+    --primary: 16 65% 50%;
+    --primary-foreground: 40 33% 98%;
+
+    /* Warm sage secondary */
+    --secondary: 80 12% 92%;
+    --secondary-foreground: 20 25% 20%;
+
+    /* Warm muted tones */
+    --muted: 40 18% 93%;
+    --muted-foreground: 20 10% 45%;
+
+    /* Herb green accent */
+    --accent: 145 30% 92%;
+    --accent-foreground: 145 40% 20%;
+
+    /* Warm red for destructive */
+    --destructive: 4 74% 49%;
+    --destructive-foreground: 40 33% 98%;
+
+    /* Warm borders */
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 16 65% 50%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar - deep herb green */
+    --sidebar: 152 32% 14%;
+    --sidebar-foreground: 80 15% 85%;
+    --sidebar-accent: 152 25% 22%;
+    --sidebar-muted: 80 10% 55%;
+
+    /* Warm warning amber */
+    --warning: 38 92% 50%;
+    --warning-foreground: 20 25% 12%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 142.1 70.6% 45.3%;
-    --primary-foreground: 144.9 80.4% 10%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142.4 71.8% 29.2%;
+    --background: 20 18% 8%;
+    --foreground: 40 15% 90%;
+
+    --card: 20 15% 11%;
+    --card-foreground: 40 15% 90%;
+
+    --popover: 20 15% 11%;
+    --popover-foreground: 40 15% 90%;
+
+    --primary: 16 65% 55%;
+    --primary-foreground: 20 18% 8%;
+
+    --secondary: 20 12% 18%;
+    --secondary-foreground: 40 15% 90%;
+
+    --muted: 20 12% 18%;
+    --muted-foreground: 30 10% 55%;
+
+    --accent: 145 20% 18%;
+    --accent-foreground: 145 30% 80%;
+
+    --destructive: 4 62% 40%;
+    --destructive-foreground: 40 15% 90%;
+
+    --border: 20 12% 18%;
+    --input: 20 12% 18%;
+    --ring: 16 65% 55%;
   }
 }
 
@@ -55,5 +90,80 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), Georgia, serif;
+  }
+
+  .font-sans {
+    font-family: var(--font-body), system-ui, sans-serif;
+  }
+}
+
+/* Subtle texture overlay for backgrounds */
+.bg-texture {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.02'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Entry animations */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+/* Staggered children animation */
+.stagger-children > * {
+  opacity: 0;
+  animation: fade-up 0.4s ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 360ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 420ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 480ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 540ms; }
+.stagger-children > *:nth-child(11) { animation-delay: 600ms; }
+.stagger-children > *:nth-child(12) { animation-delay: 660ms; }

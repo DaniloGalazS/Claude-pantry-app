@@ -7,6 +7,14 @@ export interface User {
   createdAt: Timestamp;
 }
 
+export interface Pantry {
+  id: string;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  createdAt: Timestamp;
+}
+
 export interface PantryItem {
   id: string;
   name: string;
@@ -15,6 +23,7 @@ export interface PantryItem {
   expirationDate: Timestamp | null;
   addedAt: Timestamp;
   imageUrl?: string;
+  pantryId: string;
 }
 
 export interface CookedRecipe {
@@ -44,6 +53,21 @@ export interface Recipe {
   dietaryTags?: string[];
   missingItems: RecipeIngredient[];
   availablePercentage: number;
+}
+
+export interface SavedRecipe {
+  id: string;
+  name: string;
+  description: string;
+  ingredients: RecipeIngredient[];
+  steps: string[];
+  prepTime: number;
+  cookTime: number;
+  difficulty: "easy" | "medium" | "hard";
+  servings: number;
+  cuisine?: string;
+  dietaryTags?: string[];
+  savedAt: Timestamp;
 }
 
 export interface RecipeFilters {

@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { X } from "lucide-react";
+import { X, SlidersHorizontal } from "lucide-react";
 import type { RecipeFilters as Filters } from "@/types";
 
 interface RecipeFiltersProps {
@@ -57,12 +57,15 @@ export function RecipeFilters({ filters, onChange }: RecipeFiltersProps) {
   };
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="border-border/60">
+      <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-medium">Filtros</h3>
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-medium">Filtros</h3>
+          </div>
           {hasFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4 mr-1" />
               Limpiar
             </Button>
@@ -71,7 +74,7 @@ export function RecipeFilters({ filters, onChange }: RecipeFiltersProps) {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-2">
-            <Label>Tiempo maximo</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Tiempo maximo</Label>
             <Select
               value={filters.maxPrepTime?.toString() || ""}
               onValueChange={(value) =>
@@ -95,7 +98,7 @@ export function RecipeFilters({ filters, onChange }: RecipeFiltersProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Dificultad</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Dificultad</Label>
             <Select
               value={filters.difficulty || ""}
               onValueChange={(value) =>
@@ -117,7 +120,7 @@ export function RecipeFilters({ filters, onChange }: RecipeFiltersProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Tipo de cocina</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Tipo de cocina</Label>
             <Select
               value={filters.cuisine || ""}
               onValueChange={(value) =>
@@ -138,7 +141,7 @@ export function RecipeFilters({ filters, onChange }: RecipeFiltersProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Restricciones</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Restricciones</Label>
             <Select
               value=""
               onValueChange={(value) => toggleDietaryTag(value)}
@@ -164,16 +167,17 @@ export function RecipeFilters({ filters, onChange }: RecipeFiltersProps) {
         </div>
 
         {filters.dietaryTags && filters.dietaryTags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-wrap gap-2 mt-4">
             {filters.dietaryTags.map((tag) => (
               <Button
                 key={tag}
                 variant="secondary"
                 size="sm"
                 onClick={() => toggleDietaryTag(tag)}
+                className="rounded-full"
               >
                 {tag}
-                <X className="h-3 w-3 ml-1" />
+                <X className="h-3 w-3 ml-1.5" />
               </Button>
             ))}
           </div>

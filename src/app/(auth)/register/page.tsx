@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Leaf } from "lucide-react";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -72,88 +72,102 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Crear Cuenta
-          </CardTitle>
-          <CardDescription className="text-center">
-            Registrate para comenzar a gestionar tu despensa
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Tu nombre"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50/30 to-green-50/40 p-4 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-green-200/20 rounded-full blur-3xl" />
+      <div className="absolute top-1/3 right-1/4 w-48 h-48 bg-amber-200/20 rounded-full blur-2xl" />
+
+      <div className="animate-scale-in relative z-10">
+        <Card className="w-full max-w-md shadow-xl shadow-black/5 border-border/50 backdrop-blur-sm">
+          <CardHeader className="space-y-3 text-center pb-2">
+            <div className="mx-auto w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-2">
+              <Leaf className="h-6 w-6 text-primary-foreground" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Correo electronico</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contrasena</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar contrasena</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creando cuenta...
-                </>
-              ) : (
-                "Crear cuenta"
-              )}
-            </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              Ya tienes cuenta?{" "}
-              <Link
-                href="/login"
-                className="text-primary hover:underline font-medium"
-              >
-                Inicia sesion
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+            <CardTitle className="font-display text-3xl tracking-wide">
+              Crear Cuenta
+            </CardTitle>
+            <CardDescription className="text-base">
+              Registrate para comenzar a gestionar tu despensa
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium">Nombre</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Tu nombre"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">Correo electronico</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">Contrasena</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirmar contrasena</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="h-11"
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4 pt-2">
+              <Button type="submit" className="w-full h-11 text-base font-medium" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creando cuenta...
+                  </>
+                ) : (
+                  "Crear cuenta"
+                )}
+              </Button>
+              <p className="text-sm text-muted-foreground text-center">
+                Ya tienes cuenta?{" "}
+                <Link
+                  href="/login"
+                  className="text-primary hover:underline font-medium"
+                >
+                  Inicia sesion
+                </Link>
+              </p>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
     </div>
   );
 }

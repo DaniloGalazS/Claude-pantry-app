@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Loader2 } from "lucide-react";
+import { compressImageForStorage } from "@/lib/imageUtils";
 import type { PantryItem } from "@/types";
 
 const UNITS = [
@@ -36,11 +37,12 @@ const UNITS = [
 ];
 
 interface AddItemDialogProps {
-  onAdd: (item: Omit<PantryItem, "id" | "addedAt">) => Promise<string>;
+  onAdd: (item: Omit<PantryItem, "id" | "addedAt" | "pantryId">) => Promise<string>;
   initialData?: {
     name?: string;
     quantity?: number;
     unit?: string;
+    imageUrl?: string;
   };
   trigger?: React.ReactNode;
 }
@@ -65,6 +67,11 @@ export function AddItemDialog({ onAdd, initialData, trigger }: AddItemDialogProp
     setIsLoading(true);
 
     try {
+      let imageUrl: string | undefined;
+      if (initialData?.imageUrl) {
+        imageUrl = await compressImageForStorage(initialData.imageUrl);
+      }
+
       await onAdd({
         name,
         quantity: parseFloat(quantity),
@@ -72,6 +79,7 @@ export function AddItemDialog({ onAdd, initialData, trigger }: AddItemDialogProp
         expirationDate: expirationDate
           ? Timestamp.fromDate(new Date(expirationDate))
           : null,
+        ...(imageUrl && { imageUrl }),
       });
       setOpen(false);
       resetForm();
@@ -99,6 +107,16 @@ export function AddItemDialog({ onAdd, initialData, trigger }: AddItemDialogProp
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {initialData?.imageUrl && (
+              <div className="flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={initialData.imageUrl}
+                  alt="Producto escaneado"
+                  className="h-24 w-24 rounded-lg object-cover border border-border/60"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="name">Nombre del producto</Label>
               <Input

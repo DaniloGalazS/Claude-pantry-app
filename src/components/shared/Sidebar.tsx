@@ -20,8 +20,10 @@ import {
   LogOut,
   Menu,
   X,
+  Leaf,
 } from "lucide-react";
 import { useState } from "react";
+import { PantrySelector } from "./PantrySelector";
 
 const navigation = [
   { name: "Inventario", href: "/inventory", icon: Package },
@@ -51,6 +53,7 @@ export function Sidebar() {
         <Button
           variant="outline"
           size="icon"
+          className="bg-white/90 backdrop-blur-sm shadow-md border-border/50"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? (
@@ -64,7 +67,7 @@ export function Sidebar() {
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -72,21 +75,28 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-white border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 w-64 bg-sidebar transform transition-transform duration-300 ease-out lg:translate-x-0",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center h-16 px-6 border-b">
-            <Link href="/inventory" className="flex items-center gap-2">
-              <Package className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg">Despensa</span>
+          <div className="flex items-center h-16 px-6 border-b border-white/10">
+            <Link href="/inventory" className="flex items-center gap-3 group">
+              <div className="w-8 h-8 rounded-lg bg-primary/90 flex items-center justify-center transition-transform group-hover:scale-105">
+                <Leaf className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <span className="font-display text-xl text-white tracking-wide">
+                Despensa
+              </span>
             </Link>
           </div>
 
+          {/* Pantry selector */}
+          <PantrySelector />
+
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-4 space-y-1">
+          <nav className="flex-1 px-3 py-6 space-y-1">
             {navigation.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
@@ -95,37 +105,42 @@ export function Sidebar() {
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-white/15 text-white shadow-sm"
+                      : "text-sidebar-foreground hover:bg-white/8 hover:text-white"
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className={cn("h-5 w-5", isActive ? "text-primary-foreground" : "")} />
                   {item.name}
                 </Link>
               );
             })}
           </nav>
 
+          {/* Decorative divider */}
+          <div className="px-6 py-2">
+            <div className="h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+          </div>
+
           {/* User menu */}
-          <div className="p-4 border-t">
+          <div className="p-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start gap-3 px-3"
+                  className="w-full justify-start gap-3 px-3 py-6 text-sidebar-foreground hover:bg-white/8 hover:text-white rounded-lg"
                 >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start text-sm">
-                    <span className="font-medium">
+                    <span className="font-medium text-white">
                       {user?.displayName || "Usuario"}
                     </span>
-                    <span className="text-xs text-muted-foreground truncate max-w-[140px]">
+                    <span className="text-xs text-sidebar-muted truncate max-w-[140px]">
                       {user?.email}
                     </span>
                   </div>

@@ -11,7 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, AlertTriangle, Clock, CalendarDays, Package } from "lucide-react";
+import { ImagePreviewDialog } from "./ImagePreviewDialog";
 import type { PantryItem } from "@/types";
 
 interface PantryItemCardProps {
@@ -38,6 +39,7 @@ function getExpirationStatus(expirationDate: Timestamp | null): {
 
 export function PantryItemCard({ item, onEdit, onDelete }: PantryItemCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showImage, setShowImage] = useState(false);
   const { status, daysLeft } = getExpirationStatus(item.expirationDate);
 
   const handleDelete = async () => {
@@ -57,22 +59,47 @@ export function PantryItemCard({ item, onEdit, onDelete }: PantryItemCardProps) 
     });
   };
 
+  const borderClass =
+    status === "expired"
+      ? "border-destructive/40 bg-destructive/3"
+      : status === "warning"
+      ? "border-warning/40 bg-warning/3"
+      : "border-border/60";
+
   return (
-    <Card className={status === "expired" ? "border-destructive" : status === "warning" ? "border-yellow-500" : ""}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="font-medium">{item.name}</h3>
+    <>
+    <Card className={`${borderClass} hover:shadow-md transition-all duration-200 group`}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-2">
+          {item.imageUrl ? (
+            <button
+              onClick={() => setShowImage(true)}
+              className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-border/60 hover:ring-2 hover:ring-primary/30 transition-all"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.imageUrl}
+                alt={item.name}
+                className="w-full h-full object-cover"
+              />
+            </button>
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+              <Package className="h-5 w-5 text-muted-foreground" />
+            </div>
+          )}
+          <div className="space-y-2 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-medium text-base truncate">{item.name}</h3>
               {status === "expired" && (
-                <Badge variant="destructive" className="text-xs">
+                <Badge variant="destructive" className="text-xs shrink-0">
                   <AlertTriangle className="mr-1 h-3 w-3" />
                   Caducado
                 </Badge>
               )}
               {status === "warning" && (
-                <Badge variant="warning" className="text-xs">
-                  <AlertTriangle className="mr-1 h-3 w-3" />
+                <Badge variant="warning" className="text-xs shrink-0">
+                  <Clock className="mr-1 h-3 w-3" />
                   {daysLeft === 0
                     ? "Caduca hoy"
                     : daysLeft === 1
@@ -81,18 +108,26 @@ export function PantryItemCard({ item, onEdit, onDelete }: PantryItemCardProps) 
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">
-              {item.quantity} {item.unit}
-            </p>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-medium text-primary">
+                {item.quantity} {item.unit}
+              </span>
+            </div>
             {item.expirationDate && (
-              <p className="text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarDays className="h-3 w-3" />
                 Caduca: {formatDate(item.expirationDate)}
-              </p>
+              </div>
             )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={isDeleting}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                disabled={isDeleting}
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -113,5 +148,14 @@ export function PantryItemCard({ item, onEdit, onDelete }: PantryItemCardProps) 
         </div>
       </CardContent>
     </Card>
+    {item.imageUrl && (
+      <ImagePreviewDialog
+        imageUrl={item.imageUrl}
+        productName={item.name}
+        open={showImage}
+        onOpenChange={setShowImage}
+      />
+    )}
+    </>
   );
 }

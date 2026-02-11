@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { updateProfile, updatePassword } from "firebase/auth";
 import { Loader2, User, Lock, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { PantryManagement } from "@/components/settings/PantryManagement";
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
@@ -100,18 +101,20 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl animate-fade-up">
       <div>
-        <h1 className="text-2xl font-bold">Configuracion</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-display text-3xl text-foreground">Configuracion</h1>
+        <p className="text-muted-foreground mt-1">
           Administra tu cuenta y preferencias
         </p>
       </div>
 
-      <Card>
+      <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <User className="h-4 w-4 text-primary" />
+            </div>
             Perfil
           </CardTitle>
           <CardDescription>
@@ -121,24 +124,26 @@ export default function SettingsPage() {
         <CardContent>
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electronico</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Correo electronico</Label>
               <Input
                 id="email"
                 type="email"
                 value={user?.email || ""}
                 disabled
+                className="bg-muted/50"
               />
               <p className="text-xs text-muted-foreground">
                 El correo electronico no se puede cambiar
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre</Label>
+              <Label htmlFor="name" className="text-sm font-medium">Nombre</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isUpdatingProfile}
+                className="h-11"
               />
             </div>
             <Button type="submit" disabled={isUpdatingProfile}>
@@ -155,10 +160,14 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <PantryManagement />
+
+      <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Lock className="h-4 w-4 text-primary" />
+            </div>
             Seguridad
           </CardTitle>
           <CardDescription>Cambia tu contrasena</CardDescription>
@@ -166,23 +175,25 @@ export default function SettingsPage() {
         <CardContent>
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="newPassword">Nueva contrasena</Label>
+              <Label htmlFor="newPassword" className="text-sm font-medium">Nueva contrasena</Label>
               <Input
                 id="newPassword"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 disabled={isUpdatingPassword}
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar contrasena</Label>
+              <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirmar contrasena</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={isUpdatingPassword}
+                className="h-11"
               />
             </div>
             <Button type="submit" disabled={isUpdatingPassword}>
@@ -199,10 +210,12 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-destructive">
+      <Card className="border-destructive/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
-            <LogOut className="h-5 w-5" />
+            <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+              <LogOut className="h-4 w-4 text-destructive" />
+            </div>
             Cerrar sesion
           </CardTitle>
           <CardDescription>

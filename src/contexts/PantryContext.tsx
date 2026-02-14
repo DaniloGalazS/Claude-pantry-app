@@ -23,6 +23,7 @@ interface PantryContextType {
   addPantry: (name: string, description?: string) => Promise<string>;
   updatePantry: (id: string, updates: { name?: string; description?: string }) => Promise<void>;
   deletePantry: (id: string) => Promise<void>;
+  setDefaultPantry: (id: string) => Promise<void>;
 }
 
 const PantryContext = createContext<PantryContextType | undefined>(undefined);
@@ -35,6 +36,7 @@ export function PantryProvider({ children }: { children: React.ReactNode }) {
     addPantry: addPantryRaw,
     updatePantry,
     deletePantry: deletePantryRaw,
+    setDefaultPantry: setDefaultPantryRaw,
   } = usePantries();
   const [activePantryId, setActivePantryIdState] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
@@ -51,23 +53,13 @@ export function PantryProvider({ children }: { children: React.ReactNode }) {
   // Migration: create default pantry and assign pantryId to orphan items
   useEffect(() => {
     if (pantriesLoading || !user || !db || migrationDone.current) return;
+    if (pantries.length > 0) {
+      // Pantries already exist — migrate orphan items only
+      const database = db;
+      const defaultPantry = pantries.find((p) => p.isDefault) || pantries[0];
+      migrationDone.current = true;
 
-    const database = db;
-
-    const runMigration = async () => {
-      if (pantries.length > 0) {
-        // Pantries exist — just ensure activePantryId is valid
-        const defaultPantry = pantries.find((p) => p.isDefault) || pantries[0];
-        setActivePantryIdState((prev) => {
-          const valid = pantries.some((p) => p.id === prev);
-          if (!valid) {
-            localStorage.setItem(ACTIVE_PANTRY_KEY, defaultPantry.id);
-            return defaultPantry.id;
-          }
-          return prev;
-        });
-
-        // Migrate orphan items (items without pantryId)
+      const migrateOrphans = async () => {
         try {
           const itemsRef = collection(database, "users", user.uid, "pantryItems");
           const snapshot = await getDocs(itemsRef);
@@ -86,12 +78,17 @@ export function PantryProvider({ children }: { children: React.ReactNode }) {
         } catch {
           setMigrating(false);
         }
+      };
 
-        migrationDone.current = true;
-        return;
-      }
+      migrateOrphans();
+      return;
+    }
 
-      // No pantries — create default
+    // No pantries — create default (set flag synchronously to prevent duplicate runs)
+    migrationDone.current = true;
+    const database = db;
+
+    const createDefaultPantry = async () => {
       setMigrating(true);
       try {
         const defaultId = await addPantryRaw("Mi Despensa", undefined, true);
@@ -111,15 +108,27 @@ export function PantryProvider({ children }: { children: React.ReactNode }) {
           );
         }
       } catch {
-        // Migration failed — will retry next session
+        // Migration failed — allow retry next session
+        migrationDone.current = false;
       } finally {
         setMigrating(false);
-        migrationDone.current = true;
       }
     };
 
-    runMigration();
+    createDefaultPantry();
   }, [pantriesLoading, pantries, user, addPantryRaw]);
+
+  // Keep activePantryId valid when pantries change
+  useEffect(() => {
+    if (pantriesLoading || pantries.length === 0) return;
+
+    setActivePantryIdState((prev) => {
+      if (prev && pantries.some((p) => p.id === prev)) return prev;
+      const defaultPantry = pantries.find((p) => p.isDefault) || pantries[0];
+      localStorage.setItem(ACTIVE_PANTRY_KEY, defaultPantry.id);
+      return defaultPantry.id;
+    });
+  }, [pantriesLoading, pantries]);
 
   const setActivePantryId = useCallback((id: string) => {
     localStorage.setItem(ACTIVE_PANTRY_KEY, id);
@@ -138,12 +147,23 @@ export function PantryProvider({ children }: { children: React.ReactNode }) {
   const deletePantry = useCallback(
     async (id: string) => {
       if (!user || !db) throw new Error("Not authenticated");
+      if (pantries.length <= 1) throw new Error("No se puede eliminar la ultima despensa");
 
       const database = db;
-      const defaultPantry = pantries.find((p) => p.isDefault);
-      if (!defaultPantry) throw new Error("No default pantry found");
+      const pantryToDelete = pantries.find((p) => p.id === id);
+      const isDeletingDefault = pantryToDelete?.isDefault;
 
-      // Reassign items from deleted pantry to default
+      // Determine the target pantry for items and new default
+      const targetPantry = isDeletingDefault
+        ? pantries.find((p) => p.id !== id)!
+        : pantries.find((p) => p.isDefault) || pantries.find((p) => p.id !== id)!;
+
+      // If deleting the default, assign default to the target pantry first
+      if (isDeletingDefault) {
+        await setDefaultPantryRaw(targetPantry.id);
+      }
+
+      // Reassign items from deleted pantry to target
       const itemsRef = collection(database, "users", user.uid, "pantryItems");
       const snapshot = await getDocs(itemsRef);
       const itemsToMove = snapshot.docs.filter((d) => d.data().pantryId === id);
@@ -151,7 +171,7 @@ export function PantryProvider({ children }: { children: React.ReactNode }) {
         await Promise.all(
           itemsToMove.map((d) =>
             updateDoc(doc(database, "users", user.uid, "pantryItems", d.id), {
-              pantryId: defaultPantry.id,
+              pantryId: targetPantry.id,
             })
           )
         );
@@ -159,12 +179,12 @@ export function PantryProvider({ children }: { children: React.ReactNode }) {
 
       await deletePantryRaw(id);
 
-      // If the deleted pantry was active, switch to default
+      // If the deleted pantry was active, switch to target
       if (activePantryId === id) {
-        setActivePantryId(defaultPantry.id);
+        setActivePantryId(targetPantry.id);
       }
     },
-    [user, pantries, activePantryId, deletePantryRaw, setActivePantryId]
+    [user, pantries, activePantryId, deletePantryRaw, setDefaultPantryRaw, setActivePantryId]
   );
 
   const loading = pantriesLoading || migrating;
@@ -180,6 +200,7 @@ export function PantryProvider({ children }: { children: React.ReactNode }) {
         addPantry,
         updatePantry,
         deletePantry,
+        setDefaultPantry: setDefaultPantryRaw,
       }}
     >
       {children}

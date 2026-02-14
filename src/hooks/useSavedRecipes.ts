@@ -64,6 +64,7 @@ export function useSavedRecipes() {
       servings: recipe.servings,
       cuisine: recipe.cuisine || null,
       dietaryTags: recipe.dietaryTags || [],
+      nutrition: recipe.nutrition || null,
       savedAt: Timestamp.now(),
     });
     return docRef.id;

@@ -29,7 +29,10 @@ import {
   Flame,
   Bookmark,
   BookmarkCheck,
+  Play,
+  ExternalLink,
 } from "lucide-react";
+import { NutritionDisplay } from "@/components/recipes/NutritionDisplay";
 import type { Recipe } from "@/types";
 
 interface RecipeCardProps {
@@ -106,6 +109,12 @@ export function RecipeCard({ recipe, onCook, onSave, onUnsave, isSaved }: Recipe
               <Users className="h-4 w-4" />
               <span>{recipe.servings} porciones</span>
             </div>
+            {recipe.nutrition && (
+              <div className="flex items-center gap-1.5">
+                <Flame className="h-4 w-4" />
+                <span>{recipe.nutrition.calories} kcal</span>
+              </div>
+            )}
           </div>
         </CardContent>
         <CardFooter className="pt-3 border-t border-border/40">
@@ -227,6 +236,35 @@ export function RecipeCard({ recipe, onCook, onSave, onUnsave, isSaved }: Recipe
                   </li>
                 ))}
               </ol>
+            </div>
+
+            {/* Nutrition */}
+            {recipe.nutrition && (
+              <NutritionDisplay nutrition={recipe.nutrition} />
+            )}
+
+            {/* YouTube */}
+            <div className="p-4 bg-muted/50 rounded-xl border border-border/40">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <Play className="h-5 w-5 text-red-500" />
+                  <div>
+                    <p className="text-sm font-medium">Ver video de la receta</p>
+                    <p className="text-xs text-muted-foreground">Buscar en YouTube</p>
+                  </div>
+                </div>
+                <a
+                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`receta ${recipe.name}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    Buscar
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </a>
+              </div>
             </div>
           </div>
 

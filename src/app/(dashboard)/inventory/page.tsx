@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { usePantryItems } from "@/hooks/usePantryItems";
 import { usePantryContext } from "@/contexts/PantryContext";
+import { useProductNames } from "@/hooks/useProductNames";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 import { EditItemDialog } from "@/components/inventory/EditItemDialog";
+import { MoveToPantryDialog } from "@/components/inventory/MoveToPantryDialog";
+import { BulkActionBar } from "@/components/inventory/BulkActionBar";
+import { ConfirmDeleteDialog } from "@/components/inventory/ConfirmDeleteDialog";
 import { PantryItemCard } from "@/components/inventory/PantryItemCard";
 import { PantryItemRow } from "@/components/inventory/PantryItemRow";
 import { ScanProductButton } from "@/components/inventory/ScanProductButton";
@@ -38,13 +42,23 @@ function getExpiredItemsCount(items: PantryItem[]): number {
 }
 
 export default function InventoryPage() {
-  const { activePantryId, activePantry, loading: pantryLoading } = usePantryContext();
-  const { items, loading, addItem, updateItem, deleteItem, addMultipleItems, deleteAllItems } =
+  const { activePantryId, activePantry, pantries, loading: pantryLoading } = usePantryContext();
+  const { items, loading, addItem, updateItem, deleteItem, deleteMultipleItems, addMultipleItems, deleteAllItems, removeItems } =
     usePantryItems(activePantryId);
+  const { productNames } = useProductNames();
   const [searchQuery, setSearchQuery] = useState("");
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
+  const [movingItem, setMovingItem] = useState<PantryItem | null>(null);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showBulkMove, setShowBulkMove] = useState(false);
   const { toast } = useToast();
+
+  // Clear selection when pantry changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activePantryId]);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery) return items;
@@ -54,6 +68,18 @@ export default function InventoryPage() {
 
   const expiringCount = useMemo(() => getExpiringItemsCount(items), [items]);
   const expiredCount = useMemo(() => getExpiredItemsCount(items), [items]);
+
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   const handleAddItem = async (item: Omit<PantryItem, "id" | "addedAt" | "pantryId">) => {
     try {
@@ -114,6 +140,57 @@ export default function InventoryPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    try {
+      await deleteMultipleItems(Array.from(selectedIds));
+      toast({
+        title: "Productos eliminados",
+        description: `Se eliminaron ${selectedIds.size} producto${selectedIds.size !== 1 ? "s" : ""}`,
+      });
+      setSelectedIds(new Set());
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron eliminar los productos",
+      });
+    }
+  };
+
+  const handleMoveItem = async (itemIds: string[], targetPantryId: string) => {
+    try {
+      await Promise.all(
+        itemIds.map((id) => updateItem(id, { pantryId: targetPantryId }))
+      );
+      // Optimistically remove moved items from local state
+      removeItems(itemIds);
+      const targetPantry = pantries.find((p) => p.id === targetPantryId);
+      const count = itemIds.length;
+      toast({
+        title: count === 1 ? "Producto movido" : "Productos movidos",
+        description: count === 1
+          ? `Se ha movido a ${targetPantry?.name || "otra despensa"}`
+          : `Se movieron ${count} productos a ${targetPantry?.name || "otra despensa"}`,
+      });
+      setSelectedIds(new Set());
+      setMovingItem(null);
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron mover los productos",
+      });
+    }
+  };
+
+  const canMove = pantries.length >= 2;
+
+  // Items for the bulk move dialog
+  const bulkMoveItems = useMemo(
+    () => items.filter((i) => selectedIds.has(i.id)),
+    [items, selectedIds]
+  );
+
   if (pantryLoading || loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -136,7 +213,7 @@ export default function InventoryPage() {
           <ScanProductButton onAdd={handleAddItem} />
           <ScanReceiptButton onAddMultiple={handleAddMultipleItems} />
           <BulkUploadButton onAddMultiple={handleAddMultipleItems} onDeleteAll={deleteAllItems} />
-          <AddItemDialog onAdd={handleAddItem} />
+          <AddItemDialog onAdd={handleAddItem} productNames={productNames} />
         </div>
       </div>
 
@@ -214,6 +291,9 @@ export default function InventoryPage() {
               item={item}
               onEdit={setEditingItem}
               onDelete={handleDeleteItem}
+              onMove={canMove ? (i) => { setMovingItem(i); } : undefined}
+              selected={selectedIds.has(item.id)}
+              onToggleSelect={handleToggleSelect}
             />
           ))}
         </div>
@@ -225,16 +305,56 @@ export default function InventoryPage() {
               item={item}
               onEdit={setEditingItem}
               onDelete={handleDeleteItem}
+              onMove={canMove ? (i) => { setMovingItem(i); } : undefined}
+              selected={selectedIds.has(item.id)}
+              onToggleSelect={handleToggleSelect}
             />
           ))}
         </div>
       )}
+
+      {/* Bulk action bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onDelete={() => setShowConfirmDelete(true)}
+        onMove={canMove ? () => setShowBulkMove(true) : undefined}
+        onClearSelection={() => setSelectedIds(new Set())}
+      />
+
+      {/* Confirm bulk delete dialog */}
+      <ConfirmDeleteDialog
+        open={showConfirmDelete}
+        onOpenChange={setShowConfirmDelete}
+        count={selectedIds.size}
+        onConfirm={handleBulkDelete}
+      />
 
       <EditItemDialog
         item={editingItem}
         open={!!editingItem}
         onOpenChange={(open) => !open && setEditingItem(null)}
         onSave={handleUpdateItem}
+        productNames={productNames}
+      />
+
+      {/* Single item move dialog */}
+      {movingItem && !showBulkMove && (
+        <MoveToPantryDialog
+          items={[movingItem]}
+          open={!!movingItem}
+          onOpenChange={(open) => !open && setMovingItem(null)}
+          onMove={handleMoveItem}
+        />
+      )}
+
+      {/* Bulk move dialog */}
+      <MoveToPantryDialog
+        items={bulkMoveItems}
+        open={showBulkMove}
+        onOpenChange={(open) => {
+          if (!open) setShowBulkMove(false);
+        }}
+        onMove={handleMoveItem}
       />
     </div>
   );

@@ -49,11 +49,11 @@ export async function POST(request: NextRequest) {
 
     const response = await client.messages.create({
       model: CLAUDE_MODEL,
-      max_tokens: 4096,
+      max_tokens: 6000,
       messages: [
         {
           role: "user",
-          content: `Eres un chef experto. Genera 3 recetas basandote en los ingredientes disponibles.
+          content: `Eres un chef experto y nutricionista. Genera 3 recetas basandote en los ingredientes disponibles.
 
 INGREDIENTES DISPONIBLES:
 ${ingredientsList}
@@ -63,6 +63,7 @@ REGLAS IMPORTANTES:
 2. Como maximo, el ${maxMissingPercentage}% de los ingredientes pueden faltar (para comprar)
 3. Prioriza recetas que usen la mayor cantidad de ingredientes disponibles
 4. Considera las cantidades disponibles al sugerir las recetas
+5. Incluye informacion nutricional estimada POR PORCION para cada receta
 
 ${filterInstructions ? `FILTROS:\n${filterInstructions}` : ""}
 
@@ -86,7 +87,22 @@ Responde en formato JSON con la siguiente estructura:
       "missingItems": [
         { "name": "ingrediente faltante", "quantity": numero, "unit": "unidad" }
       ],
-      "availablePercentage": numero del 0 al 100 indicando que porcentaje de ingredientes estan disponibles
+      "availablePercentage": numero del 0 al 100 indicando que porcentaje de ingredientes estan disponibles,
+      "nutrition": {
+        "calories": numero de kcal por porcion,
+        "protein": gramos de proteina por porcion,
+        "carbs": {
+          "total": gramos totales de carbohidratos,
+          "fiber": gramos de fibra,
+          "sugar": gramos de azucar
+        },
+        "fat": {
+          "total": gramos totales de grasa,
+          "saturated": gramos de grasa saturada,
+          "unsaturated": gramos de grasa insaturada
+        },
+        "sodium": miligramos de sodio
+      }
     }
   ]
 }

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { Autocomplete } from "@/components/ui/autocomplete";
 import type { PantryItem } from "@/types";
 
 const UNITS = [
@@ -39,6 +40,7 @@ interface EditItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (id: string, updates: Partial<Omit<PantryItem, "id">>) => Promise<void>;
+  productNames?: string[];
 }
 
 export function EditItemDialog({
@@ -46,6 +48,7 @@ export function EditItemDialog({
   open,
   onOpenChange,
   onSave,
+  productNames,
 }: EditItemDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
@@ -101,11 +104,11 @@ export function EditItemDialog({
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nombre del producto</Label>
-              <Input
+              <Autocomplete
                 id="edit-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
+                onChange={setName}
+                suggestions={productNames || []}
                 disabled={isLoading}
               />
             </div>

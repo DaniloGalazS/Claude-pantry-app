@@ -9,9 +9,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2, AlertTriangle, Clock, CalendarDays, Package } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, ArrowRightLeft, AlertTriangle, Clock, CalendarDays, Package } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImagePreviewDialog } from "./ImagePreviewDialog";
 import type { PantryItem } from "@/types";
 
@@ -19,6 +21,9 @@ interface PantryItemCardProps {
   item: PantryItem;
   onEdit: (item: PantryItem) => void;
   onDelete: (id: string) => void;
+  onMove?: (item: PantryItem) => void;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 function getExpirationStatus(expirationDate: Timestamp | null): {
@@ -37,7 +42,7 @@ function getExpirationStatus(expirationDate: Timestamp | null): {
   return { status: "ok", daysLeft: diffDays };
 }
 
-export function PantryItemCard({ item, onEdit, onDelete }: PantryItemCardProps) {
+export function PantryItemCard({ item, onEdit, onDelete, onMove, selected, onToggleSelect }: PantryItemCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showImage, setShowImage] = useState(false);
   const { status, daysLeft } = getExpirationStatus(item.expirationDate);
@@ -68,9 +73,16 @@ export function PantryItemCard({ item, onEdit, onDelete }: PantryItemCardProps) 
 
   return (
     <>
-    <Card className={`${borderClass} hover:shadow-md transition-all duration-200 group`}>
+    <Card className={`${borderClass} ${selected ? "ring-2 ring-primary/30 bg-primary/5" : ""} hover:shadow-md transition-all duration-200 group`}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-2">
+          {onToggleSelect && (
+            <Checkbox
+              checked={selected}
+              onCheckedChange={() => onToggleSelect(item.id)}
+              className="mt-1 shrink-0"
+            />
+          )}
           {item.imageUrl ? (
             <button
               onClick={() => setShowImage(true)}
@@ -136,6 +148,16 @@ export function PantryItemCard({ item, onEdit, onDelete }: PantryItemCardProps) 
                 <Pencil className="mr-2 h-4 w-4" />
                 Editar
               </DropdownMenuItem>
+              {onMove && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onMove(item)}>
+                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                    Cambiar despensa
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleDelete}
                 className="text-destructive focus:text-destructive"

@@ -21,11 +21,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Warehouse, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Warehouse, Plus, Pencil, Trash2, Loader2, Star } from "lucide-react";
 import type { Pantry } from "@/types";
 
 export function PantryManagement() {
-  const { pantries, addPantry, updatePantry, deletePantry } = usePantryContext();
+  const { pantries, addPantry, updatePantry, deletePantry, setDefaultPantry } = usePantryContext();
   const { toast } = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -36,6 +36,26 @@ export function PantryManagement() {
 
   const [deleteTarget, setDeleteTarget] = useState<Pantry | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
+
+  const handleSetDefault = async (pantry: Pantry) => {
+    setSettingDefaultId(pantry.id);
+    try {
+      await setDefaultPantry(pantry.id);
+      toast({
+        title: "Despensa principal actualizada",
+        description: `"${pantry.name}" es ahora tu despensa principal`,
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo cambiar la despensa principal",
+      });
+    } finally {
+      setSettingDefaultId(null);
+    }
+  };
 
   const openCreate = () => {
     setEditingPantry(null);
@@ -152,6 +172,22 @@ export function PantryManagement() {
                   )}
                 </div>
                 <div className="flex items-center gap-1 ml-3">
+                  {!pantry.isDefault && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                      onClick={() => handleSetDefault(pantry)}
+                      disabled={settingDefaultId === pantry.id}
+                      title="Marcar como principal"
+                    >
+                      {settingDefaultId === pantry.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Star className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -160,7 +196,7 @@ export function PantryManagement() {
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  {!pantry.isDefault && (
+                  {pantries.length > 1 && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -249,7 +285,13 @@ export function PantryManagement() {
             <DialogTitle>Eliminar despensa</DialogTitle>
             <DialogDescription>
               ¿Estas seguro de que deseas eliminar &quot;{deleteTarget?.name}&quot;?
-              Los productos se moveran a tu despensa principal.
+              {deleteTarget?.isDefault ? (
+                <>
+                  {" "}Esta es tu despensa principal. &quot;{pantries.find((p) => p.id !== deleteTarget.id)?.name}&quot; pasara a ser la nueva principal y los productos se moveran a ella.
+                </>
+              ) : (
+                <> Los productos se moveran a tu despensa principal.</>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

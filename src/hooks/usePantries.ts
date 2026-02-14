@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   collection,
   query,
@@ -10,6 +10,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  writeBatch,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -49,7 +50,7 @@ export function usePantries() {
     return () => unsubscribe();
   }, [user]);
 
-  const addPantry = async (
+  const addPantry = useCallback(async (
     name: string,
     description?: string,
     isDefault = false
@@ -65,9 +66,9 @@ export function usePantries() {
       createdAt: Timestamp.now(),
     });
     return docRef.id;
-  };
+  }, [user]);
 
-  const updatePantry = async (
+  const updatePantry = useCallback(async (
     id: string,
     updates: { name?: string; description?: string }
   ): Promise<void> => {
@@ -76,20 +77,35 @@ export function usePantries() {
 
     const pantryRef = doc(db, "users", user.uid, "pantries", id);
     await updateDoc(pantryRef, updates);
-  };
+  }, [user]);
 
-  const deletePantry = async (id: string): Promise<void> => {
+  const deletePantry = useCallback(async (id: string): Promise<void> => {
     if (!user) throw new Error("User not authenticated");
     if (!db) throw new Error("Database not initialized");
 
-    const pantry = pantries.find((p) => p.id === id);
-    if (pantry?.isDefault) {
-      throw new Error("No se puede eliminar la despensa principal");
-    }
-
     const pantryRef = doc(db, "users", user.uid, "pantries", id);
     await deleteDoc(pantryRef);
-  };
+  }, [user]);
+
+  const setDefaultPantry = useCallback(async (id: string): Promise<void> => {
+    if (!user) throw new Error("User not authenticated");
+    if (!db) throw new Error("Database not initialized");
+
+    const currentDefault = pantries.find((p) => p.isDefault);
+    if (currentDefault?.id === id) return;
+
+    const batch = writeBatch(db);
+
+    if (currentDefault) {
+      const oldRef = doc(db, "users", user.uid, "pantries", currentDefault.id);
+      batch.update(oldRef, { isDefault: false });
+    }
+
+    const newRef = doc(db, "users", user.uid, "pantries", id);
+    batch.update(newRef, { isDefault: true });
+
+    await batch.commit();
+  }, [user, pantries]);
 
   return {
     pantries,
@@ -97,5 +113,6 @@ export function usePantries() {
     addPantry,
     updatePantry,
     deletePantry,
+    setDefaultPantry,
   };
 }

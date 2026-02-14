@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Loader2 } from "lucide-react";
+import { Autocomplete } from "@/components/ui/autocomplete";
 import { compressImageForStorage } from "@/lib/imageUtils";
 import type { PantryItem } from "@/types";
 
@@ -45,9 +46,10 @@ interface AddItemDialogProps {
     imageUrl?: string;
   };
   trigger?: React.ReactNode;
+  productNames?: string[];
 }
 
-export function AddItemDialog({ onAdd, initialData, trigger }: AddItemDialogProps) {
+export function AddItemDialog({ onAdd, initialData, trigger, productNames }: AddItemDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState(initialData?.name || "");
@@ -119,12 +121,12 @@ export function AddItemDialog({ onAdd, initialData, trigger }: AddItemDialogProp
             )}
             <div className="space-y-2">
               <Label htmlFor="name">Nombre del producto</Label>
-              <Input
+              <Autocomplete
                 id="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={setName}
+                suggestions={productNames || []}
                 placeholder="ej. Leche, Arroz, Tomates..."
-                required
                 disabled={isLoading}
               />
             </div>

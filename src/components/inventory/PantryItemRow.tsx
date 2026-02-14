@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Timestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, AlertTriangle, Clock, Package } from "lucide-react";
+import { Pencil, Trash2, ArrowRightLeft, AlertTriangle, Clock, Package } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImagePreviewDialog } from "./ImagePreviewDialog";
 import type { PantryItem } from "@/types";
 
@@ -12,6 +13,9 @@ interface PantryItemRowProps {
   item: PantryItem;
   onEdit: (item: PantryItem) => void;
   onDelete: (id: string) => void;
+  onMove?: (item: PantryItem) => void;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 function getExpirationStatus(expirationDate: Timestamp | null): {
@@ -30,7 +34,7 @@ function getExpirationStatus(expirationDate: Timestamp | null): {
   return { status: "ok", daysLeft: diffDays };
 }
 
-export function PantryItemRow({ item, onEdit, onDelete }: PantryItemRowProps) {
+export function PantryItemRow({ item, onEdit, onDelete, onMove, selected, onToggleSelect }: PantryItemRowProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showImage, setShowImage] = useState(false);
   const { status, daysLeft } = getExpirationStatus(item.expirationDate);
@@ -62,8 +66,16 @@ export function PantryItemRow({ item, onEdit, onDelete }: PantryItemRowProps) {
   return (
     <>
     <div
-      className={`flex items-center gap-4 px-5 py-3.5 border-b last:border-b-0 hover:bg-muted/40 transition-colors group ${bgClass}`}
+      className={`flex items-center gap-4 px-5 py-3.5 border-b last:border-b-0 hover:bg-muted/40 transition-colors group ${bgClass} ${selected ? "bg-primary/5" : ""}`}
     >
+      {/* Checkbox */}
+      {onToggleSelect && (
+        <Checkbox
+          checked={selected}
+          onCheckedChange={() => onToggleSelect(item.id)}
+          className="shrink-0"
+        />
+      )}
       {/* Thumbnail */}
       {item.imageUrl ? (
         <button
@@ -125,6 +137,17 @@ export function PantryItemRow({ item, onEdit, onDelete }: PantryItemRowProps) {
         >
           <Pencil className="h-4 w-4" />
         </Button>
+        {onMove && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onMove(item)}
+            disabled={isDeleting}
+          >
+            <ArrowRightLeft className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"

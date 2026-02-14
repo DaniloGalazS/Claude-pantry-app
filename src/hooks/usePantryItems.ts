@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   collection,
   query,
@@ -110,6 +110,23 @@ export function usePantryItems(pantryId: string | null) {
     );
   };
 
+  const deleteMultipleItems = async (ids: string[]): Promise<void> => {
+    if (!user) throw new Error("User not authenticated");
+    if (!db) throw new Error("Database not initialized");
+
+    const database = db;
+    await Promise.all(
+      ids.map((id) =>
+        deleteDoc(doc(database, "users", user.uid, "pantryItems", id))
+      )
+    );
+  };
+
+  const removeItems = useCallback((ids: string[]) => {
+    const idSet = new Set(ids);
+    setItems((prev) => prev.filter((item) => !idSet.has(item.id)));
+  }, []);
+
   const deleteAllItems = async (): Promise<void> => {
     if (!user) throw new Error("User not authenticated");
     if (!db) throw new Error("Database not initialized");
@@ -129,7 +146,9 @@ export function usePantryItems(pantryId: string | null) {
     addItem,
     updateItem,
     deleteItem,
+    deleteMultipleItems,
     addMultipleItems,
     deleteAllItems,
+    removeItems,
   };
 }

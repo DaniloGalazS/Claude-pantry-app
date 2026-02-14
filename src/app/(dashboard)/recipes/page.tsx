@@ -98,6 +98,7 @@ export default function RecipesPage() {
         servings: saved.servings,
         cuisine: saved.cuisine,
         dietaryTags: saved.dietaryTags,
+        nutrition: saved.nutrition,
         missingItems,
         availablePercentage,
       };

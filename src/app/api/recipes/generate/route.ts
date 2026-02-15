@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, CLAUDE_MODEL } from "@/lib/anthropic";
 import type { PantryItem, RecipeFilters } from "@/types";
 
+export const maxDuration = 45;
+
 interface GenerateRequest {
   pantryItems: PantryItem[];
   filters?: RecipeFilters;

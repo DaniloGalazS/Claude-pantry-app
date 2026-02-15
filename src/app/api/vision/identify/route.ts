@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, CLAUDE_MODEL } from "@/lib/anthropic";
 
+export const maxDuration = 30;
+
 export async function POST(request: NextRequest) {
   try {
     const { image } = await request.json();

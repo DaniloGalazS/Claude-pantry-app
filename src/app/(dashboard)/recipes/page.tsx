@@ -262,7 +262,7 @@ export default function RecipesPage() {
             <Button
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="h-11 px-6 text-base font-medium shadow-sm"
+              className="w-full sm:w-auto h-11 px-6 text-base font-medium shadow-sm"
             >
               {isGenerating ? (
                 <>

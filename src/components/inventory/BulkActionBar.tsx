@@ -20,7 +20,7 @@ export function BulkActionBar({
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-up">
-      <div className="flex items-center gap-3 bg-foreground text-background px-5 py-3 rounded-full shadow-lg">
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 bg-foreground text-background px-4 sm:px-5 py-3 rounded-full shadow-lg max-w-[calc(100vw-2rem)]">
         <span className="text-sm font-medium whitespace-nowrap">
           {selectedCount} seleccionado{selectedCount !== 1 ? "s" : ""}
         </span>

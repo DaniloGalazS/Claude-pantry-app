@@ -29,12 +29,14 @@ export function usePantries() {
       return;
     }
 
+    let cancelled = false;
     const pantriesRef = collection(db, "users", user.uid, "pantries");
     const q = query(pantriesRef, orderBy("createdAt", "asc"));
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        if (cancelled) return;
         const items: Pantry[] = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
@@ -43,11 +45,15 @@ export function usePantries() {
         setLoading(false);
       },
       () => {
+        if (cancelled) return;
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      try { unsubscribe(); } catch { /* Firestore SDK internal assertion — safe to ignore */ }
+    };
   }, [user]);
 
   const addPantry = useCallback(async (

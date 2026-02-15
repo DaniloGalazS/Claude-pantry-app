@@ -20,9 +20,11 @@ export function useProductNames() {
     const itemsRef = collection(db, "users", user.uid, "pantryItems");
     const q = query(itemsRef, orderBy("addedAt", "desc"));
 
+    let cancelled = false;
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        if (cancelled) return;
         const allNames: string[] = [];
         const seen = new Set<string>();
         for (const docSnap of snapshot.docs) {
@@ -38,11 +40,15 @@ export function useProductNames() {
         setLoading(false);
       },
       () => {
+        if (cancelled) return;
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      try { unsubscribe(); } catch { /* Firestore SDK internal assertion — safe to ignore */ }
+    };
   }, [user]);
 
   const productNames = useMemo(() => names, [names]);

@@ -30,6 +30,7 @@ export function usePantryItems(pantryId: string | null) {
       return;
     }
 
+    let cancelled = false;
     const itemsRef = collection(db, "users", user.uid, "pantryItems");
     const q = query(
       itemsRef,
@@ -40,6 +41,7 @@ export function usePantryItems(pantryId: string | null) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        if (cancelled) return;
         const pantryItems: PantryItem[] = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
@@ -48,12 +50,16 @@ export function usePantryItems(pantryId: string | null) {
         setLoading(false);
       },
       (err) => {
+        if (cancelled) return;
         setError(err.message);
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      try { unsubscribe(); } catch { /* Firestore SDK internal assertion — safe to ignore */ }
+    };
   }, [user, pantryId]);
 
   const addItem = async (

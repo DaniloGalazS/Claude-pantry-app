@@ -27,12 +27,14 @@ export function useSavedRecipes() {
       return;
     }
 
+    let cancelled = false;
     const recipesRef = collection(db, "users", user.uid, "savedRecipes");
     const q = query(recipesRef, orderBy("savedAt", "desc"));
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        if (cancelled) return;
         const recipes: SavedRecipe[] = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
@@ -41,11 +43,15 @@ export function useSavedRecipes() {
         setLoading(false);
       },
       () => {
+        if (cancelled) return;
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      try { unsubscribe(); } catch { /* Firestore SDK internal assertion — safe to ignore */ }
+    };
   }, [user]);
 
   const saveRecipe = async (recipe: Recipe): Promise<string> => {

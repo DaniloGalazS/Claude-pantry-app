@@ -40,7 +40,7 @@ export default function DashboardLayout({
               mounted && collapsed ? "lg:pl-[68px]" : "lg:pl-64"
             )}
           >
-            <div className="p-6 lg:p-8 max-w-7xl">{children}</div>
+            <div className="p-6 lg:p-8 max-w-7xl pt-16 lg:pt-8">{children}</div>
           </main>
         </div>
       </PantryProvider>

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePantryItems } from "@/hooks/usePantryItems";
 import { usePantryContext } from "@/contexts/PantryContext";
+import { useSavedRecipes } from "@/hooks/useSavedRecipes";
+import { useMealPlans } from "@/hooks/useMealPlans";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,8 +33,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { NutritionDisplay } from "@/components/recipes/NutritionDisplay";
 import { MealPlanCalendar } from "@/components/planner/MealPlanCalendar";
+import { MealPlanHistory } from "@/components/planner/MealPlanHistory";
 import {
   CalendarDays,
   Loader2,
@@ -55,10 +68,14 @@ import {
   Copy,
   Share2,
   ClipboardCheck,
+  Bookmark,
+  BookmarkCheck,
+  History,
 } from "lucide-react";
 import type {
   MealType,
   MealPlanConfig,
+  MealPlan,
   PlannedMeal,
   ShoppingListItem,
   NutritionalInfo,
@@ -111,6 +128,8 @@ export default function PlannerPage() {
   const { items: pantryItems, loading: itemsLoading } =
     usePantryItems(activePantryId);
   const { toast } = useToast();
+  const { saveRecipe, isRecipeSaved } = useSavedRecipes();
+  const { mealPlans, loading: plansLoading, saveMealPlan, deleteMealPlan } = useMealPlans();
 
   const today = getTodayISO();
 
@@ -128,6 +147,29 @@ export default function PlannerPage() {
   const [selectedMeal, setSelectedMeal] = useState<PlannedMeal | null>(null);
   const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null);
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
+  const [showConfirmGenerate, setShowConfirmGenerate] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // Auto-load most recent plan on mount
+  useEffect(() => {
+    if (!plansLoading && !initialLoadDone) {
+      setInitialLoadDone(true);
+      if (mealPlans.length > 0) {
+        const latest = mealPlans[0];
+        loadPlanIntoState(latest);
+      }
+    }
+  }, [plansLoading, initialLoadDone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadPlanIntoState = (plan: MealPlan) => {
+    setConfig(plan.config);
+    setMeals(plan.meals);
+    setShoppingList(plan.shoppingList);
+    setCheckedItems(new Set());
+    setHasGenerated(true);
+    setActivePlanId(plan.id);
+  };
 
   const toggleMealType = (mealType: MealType) => {
     setConfig((prev) => ({
@@ -151,8 +193,18 @@ export default function PlannerPage() {
       ? countDays(config.startDate, config.endDate) * config.mealTypes.length
       : 0;
 
+  const requestGenerate = () => {
+    if (!isConfigValid) return;
+    if (hasGenerated && meals.length > 0) {
+      setShowConfirmGenerate(true);
+    } else {
+      handleGenerate();
+    }
+  };
+
   const handleGenerate = async () => {
     if (!isConfigValid) return;
+    setShowConfirmGenerate(false);
 
     setIsGenerating(true);
     try {
@@ -168,14 +220,25 @@ export default function PlannerPage() {
       }
 
       const data = await response.json();
-      setMeals(data.meals || []);
-      setShoppingList(data.shoppingList || []);
+      const newMeals = data.meals || [];
+      const newShoppingList = data.shoppingList || [];
+
+      setMeals(newMeals);
+      setShoppingList(newShoppingList);
       setCheckedItems(new Set());
       setHasGenerated(true);
 
+      // Auto-save to Firestore
+      try {
+        const planId = await saveMealPlan(config, newMeals, newShoppingList);
+        setActivePlanId(planId);
+      } catch {
+        // Non-blocking: plan was generated but save failed
+      }
+
       toast({
         title: "Plan generado",
-        description: `Se generaron ${data.meals?.length || 0} comidas con lista de compras`,
+        description: `Se generaron ${newMeals.length} comidas con lista de compras`,
       });
     } catch (error) {
       toast({
@@ -293,6 +356,22 @@ export default function PlannerPage() {
     window.open(url, "_blank");
   };
 
+  const handleSaveRecipe = async (meal: PlannedMeal) => {
+    try {
+      await saveRecipe(meal.recipe);
+      toast({
+        title: "Receta guardada",
+        description: `"${meal.recipe.name}" se agrego a tus recetas guardadas`,
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo guardar la receta",
+      });
+    }
+  };
+
   // Group meals by date
   const mealsByDate = meals.reduce<Record<string, PlannedMeal[]>>(
     (acc, meal) => {
@@ -307,7 +386,7 @@ export default function PlannerPage() {
 
   const sortedDates = Object.keys(mealsByDate).sort();
 
-  if (pantryLoading || itemsLoading) {
+  if (pantryLoading || itemsLoading || plansLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -451,9 +530,9 @@ export default function PlannerPage() {
               </p>
             )}
             <Button
-              onClick={handleGenerate}
+              onClick={requestGenerate}
               disabled={!isConfigValid || isGenerating}
-              className="h-11 px-6 text-base font-medium shadow-sm sm:ml-auto"
+              className="w-full sm:w-auto h-11 px-6 text-base font-medium shadow-sm sm:ml-auto"
             >
               {isGenerating ? (
                 <>
@@ -488,6 +567,10 @@ export default function PlannerPage() {
               <TabsTrigger value="lista" className="gap-1.5">
                 <List className="h-4 w-4" />
                 Lista
+              </TabsTrigger>
+              <TabsTrigger value="historial" className="gap-1.5">
+                <History className="h-4 w-4" />
+                Historial
               </TabsTrigger>
             </TabsList>
 
@@ -647,6 +730,20 @@ export default function PlannerPage() {
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8 shrink-0"
+                                    title={isRecipeSaved(meal.recipe.name) ? "Receta ya guardada" : "Guardar receta"}
+                                    disabled={isRecipeSaved(meal.recipe.name)}
+                                    onClick={() => handleSaveRecipe(meal)}
+                                  >
+                                    {isRecipeSaved(meal.recipe.name) ? (
+                                      <BookmarkCheck className="h-3.5 w-3.5 text-primary" />
+                                    ) : (
+                                      <Bookmark className="h-3.5 w-3.5" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0"
                                     title="Regenerar comida"
                                     disabled={isRegenerating}
                                     onClick={() => handleRegenerateMeal(meal)}
@@ -683,6 +780,23 @@ export default function PlannerPage() {
                   );
                 })}
               </div>
+            </TabsContent>
+
+            {/* History view */}
+            <TabsContent value="historial">
+              <MealPlanHistory
+                plans={mealPlans}
+                loading={plansLoading}
+                activePlanId={activePlanId}
+                onLoadPlan={loadPlanIntoState}
+                onDeletePlan={async (id) => {
+                  await deleteMealPlan(id);
+                  if (id === activePlanId) {
+                    setActivePlanId(null);
+                  }
+                  toast({ title: "Plan eliminado", description: "El plan fue eliminado del historial" });
+                }}
+              />
             </TabsContent>
           </Tabs>
         </div>
@@ -851,15 +965,37 @@ export default function PlannerPage() {
 
       {/* Empty state placeholder — only show before first generation */}
       {!hasGenerated && pantryItems.length > 0 && (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
-            <UtensilsCrossed className="h-8 w-8 text-muted-foreground" />
+        <div className="space-y-8">
+          <div className="text-center py-16">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+              <UtensilsCrossed className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="mt-4 font-display text-xl">Listo para planificar</h3>
+            <p className="text-muted-foreground mt-1 max-w-sm mx-auto">
+              Configura tu plan y haz clic en &quot;Generar plan&quot; para
+              obtener un menu semanal basado en tu despensa
+            </p>
           </div>
-          <h3 className="mt-4 font-display text-xl">Listo para planificar</h3>
-          <p className="text-muted-foreground mt-1 max-w-sm mx-auto">
-            Configura tu plan y haz clic en &quot;Generar plan&quot; para
-            obtener un menu semanal basado en tu despensa
-          </p>
+
+          {/* Show history even when no active plan */}
+          {mealPlans.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="font-display text-2xl flex items-center gap-2">
+                <History className="h-6 w-6 text-primary" />
+                Planes anteriores
+              </h2>
+              <MealPlanHistory
+                plans={mealPlans}
+                loading={plansLoading}
+                activePlanId={activePlanId}
+                onLoadPlan={loadPlanIntoState}
+                onDeletePlan={async (id) => {
+                  await deleteMealPlan(id);
+                  toast({ title: "Plan eliminado", description: "El plan fue eliminado del historial" });
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -1023,7 +1159,25 @@ export default function PlannerPage() {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-row gap-2 sm:justify-between">
+              <Button
+                variant={isRecipeSaved(selectedMeal.recipe.name) ? "secondary" : "default"}
+                disabled={isRecipeSaved(selectedMeal.recipe.name)}
+                onClick={() => handleSaveRecipe(selectedMeal)}
+                className="gap-2"
+              >
+                {isRecipeSaved(selectedMeal.recipe.name) ? (
+                  <>
+                    <BookmarkCheck className="h-4 w-4" />
+                    Guardada
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="h-4 w-4" />
+                    Guardar receta
+                  </>
+                )}
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setSelectedMeal(null)}
@@ -1034,6 +1188,24 @@ export default function PlannerPage() {
           </DialogContent>
         )}
       </Dialog>
+
+      {/* Confirm generate new plan dialog */}
+      <AlertDialog open={showConfirmGenerate} onOpenChange={setShowConfirmGenerate}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generar nuevo plan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ya tienes un plan generado. ¿Quieres generar uno nuevo? El plan anterior se mantendra en el historial.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleGenerate}>
+              Generar nuevo plan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

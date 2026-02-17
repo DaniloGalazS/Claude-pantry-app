@@ -7,12 +7,13 @@ import { useCookedRecipes } from "@/hooks/useCookedRecipes";
 import { useSavedRecipes } from "@/hooks/useSavedRecipes";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { RecipeFilters } from "@/components/recipes/RecipeFilters";
+import { calculateAvailability } from "@/lib/recipeUtils";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ChefHat, Loader2, Sparkles, Package, Bookmark } from "lucide-react";
-import type { Recipe, RecipeFilters as Filters, RecipeIngredient, PantryItem } from "@/types";
+import type { Recipe, RecipeFilters as Filters, PantryItem } from "@/types";
 
 function deductIngredients(
   recipe: Recipe,
@@ -41,26 +42,6 @@ function deductIngredients(
   return Promise.all(promises);
 }
 
-function calculateAvailability(
-  ingredients: RecipeIngredient[],
-  pantryItems: PantryItem[]
-): { missingItems: RecipeIngredient[]; availablePercentage: number } {
-  const missing: RecipeIngredient[] = [];
-  for (const ing of ingredients) {
-    const pantryItem = pantryItems.find(
-      (p) => p.name.toLowerCase() === ing.name.toLowerCase()
-    );
-    if (!pantryItem || pantryItem.quantity < ing.quantity) {
-      missing.push(ing);
-    }
-  }
-  const total = ingredients.length;
-  const available = total - missing.length;
-  return {
-    missingItems: missing,
-    availablePercentage: total > 0 ? Math.round((available / total) * 100) : 0,
-  };
-}
 
 export default function RecipesPage() {
   const { activePantryId, loading: pantryLoading } = usePantryContext();

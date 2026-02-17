@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Timestamp } from "firebase/firestore";
+import { Timestamp, deleteField } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,8 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Camera, X } from "lucide-react";
 import { Autocomplete } from "@/components/ui/autocomplete";
+import { PhotoCapture } from "@/components/inventory/PhotoCapture";
+import { compressImageForStorage } from "@/lib/imageUtils";
 import type { PantryItem } from "@/types";
 
 const UNITS = [
@@ -55,12 +57,16 @@ export function EditItemDialog({
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("unidades");
   const [expirationDate, setExpirationDate] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
 
   useEffect(() => {
     if (item) {
       setName(item.name);
       setQuantity(item.quantity.toString());
       setUnit(item.unit);
+      setImageUrl(item.imageUrl || null);
+      setImageRemoved(false);
       if (item.expirationDate) {
         const date = item.expirationDate.toDate();
         setExpirationDate(date.toISOString().split("T")[0]);
@@ -70,6 +76,17 @@ export function EditItemDialog({
     }
   }, [item]);
 
+  const handlePhotoCapture = async (base64: string) => {
+    const compressed = await compressImageForStorage(base64);
+    setImageUrl(compressed);
+    setImageRemoved(false);
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl(null);
+    setImageRemoved(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!item) return;
@@ -77,14 +94,23 @@ export function EditItemDialog({
     setIsLoading(true);
 
     try {
-      await onSave(item.id, {
+      const updates: Partial<Omit<PantryItem, "id">> = {
         name,
         quantity: parseFloat(quantity),
         unit,
         expirationDate: expirationDate
           ? Timestamp.fromDate(new Date(expirationDate))
           : null,
-      });
+      };
+
+      if (imageUrl && imageUrl !== item.imageUrl) {
+        updates.imageUrl = imageUrl;
+      } else if (imageRemoved) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (updates as any).imageUrl = deleteField();
+      }
+
+      await onSave(item.id, updates);
       onOpenChange(false);
     } finally {
       setIsLoading(false);
@@ -102,6 +128,39 @@ export function EditItemDialog({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {/* Image section */}
+            <div className="flex items-center gap-3">
+              {imageUrl ? (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imageUrl}
+                    alt="Producto"
+                    className="h-20 w-20 rounded-lg object-cover border border-border/60"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : null}
+              <PhotoCapture
+                onCapture={handlePhotoCapture}
+                isProcessing={false}
+                trigger={
+                  <Button type="button" variant="outline" size="sm">
+                    <Camera className="mr-2 h-4 w-4" />
+                    {imageUrl ? "Cambiar foto" : "Agregar foto"}
+                  </Button>
+                }
+                title="Foto del producto"
+                description="Toma una foto o sube una imagen del producto"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nombre del producto</Label>
               <Autocomplete

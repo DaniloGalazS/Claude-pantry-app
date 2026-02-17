@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { usePantryItems } from "@/hooks/usePantryItems";
 import { usePantryContext } from "@/contexts/PantryContext";
 import { useProductNames } from "@/hooks/useProductNames";
+import { useProductImages } from "@/hooks/useProductImages";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 import { EditItemDialog } from "@/components/inventory/EditItemDialog";
 import { MoveToPantryDialog } from "@/components/inventory/MoveToPantryDialog";
@@ -46,6 +47,7 @@ export default function InventoryPage() {
   const { items, loading, addItem, updateItem, deleteItem, deleteMultipleItems, addMultipleItems, deleteAllItems, removeItems } =
     usePantryItems(activePantryId);
   const { productNames } = useProductNames();
+  const { getImageForProduct, saveProductImage } = useProductImages();
   const [searchQuery, setSearchQuery] = useState("");
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [movingItem, setMovingItem] = useState<PantryItem | null>(null);
@@ -84,6 +86,9 @@ export default function InventoryPage() {
   const handleAddItem = async (item: Omit<PantryItem, "id" | "addedAt" | "pantryId">) => {
     try {
       await addItem(item);
+      if (item.imageUrl) {
+        saveProductImage(item.name, item.imageUrl);
+      }
       toast({
         title: "Producto agregado",
         description: `${item.name} se ha agregado a tu despensa`,
@@ -111,6 +116,12 @@ export default function InventoryPage() {
   ) => {
     try {
       await updateItem(id, updates);
+      if (updates.imageUrl && updates.name) {
+        saveProductImage(updates.name, updates.imageUrl);
+      } else if (updates.imageUrl) {
+        const item = items.find((i) => i.id === id);
+        if (item) saveProductImage(item.name, updates.imageUrl);
+      }
       toast({
         title: "Producto actualizado",
         description: "Los cambios se han guardado",
@@ -213,7 +224,7 @@ export default function InventoryPage() {
           <ScanProductButton onAdd={handleAddItem} />
           <ScanReceiptButton onAddMultiple={handleAddMultipleItems} />
           <BulkUploadButton onAddMultiple={handleAddMultipleItems} onDeleteAll={deleteAllItems} />
-          <AddItemDialog onAdd={handleAddItem} productNames={productNames} />
+          <AddItemDialog onAdd={handleAddItem} productNames={productNames} getImageForProduct={getImageForProduct} />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,14 +41,19 @@ export function PhotoCapture({
         video: { facingMode: "environment" },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
       setIsCameraActive(true);
     } catch (error) {
       console.error("Error accessing camera:", error);
     }
   };
+
+  // Attach stream to video element once it's rendered
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isCameraActive]);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -168,6 +173,7 @@ export function PhotoCapture({
                     ref={videoRef}
                     autoPlay
                     playsInline
+                    muted
                     className="w-full h-full object-cover"
                   />
                 ) : (

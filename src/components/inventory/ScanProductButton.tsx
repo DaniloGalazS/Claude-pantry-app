@@ -73,6 +73,8 @@ export function ScanProductButton({ onAdd }: ScanProductButtonProps) {
           return id;
         }}
         initialData={scannedData}
+        defaultOpen
+        onClose={() => setScannedData(null)}
         trigger={
           <Button variant="outline">
             <Camera className="mr-2 h-4 w-4" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Timestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Camera, X } from "lucide-react";
 import { Autocomplete } from "@/components/ui/autocomplete";
+import { PhotoCapture } from "@/components/inventory/PhotoCapture";
 import { compressImageForStorage } from "@/lib/imageUtils";
 import type { PantryItem } from "@/types";
 
@@ -45,23 +46,56 @@ interface AddItemDialogProps {
     unit?: string;
     imageUrl?: string;
   };
+  defaultOpen?: boolean;
+  onClose?: () => void;
   trigger?: React.ReactNode;
   productNames?: string[];
+  getImageForProduct?: (name: string) => string | undefined;
 }
 
-export function AddItemDialog({ onAdd, initialData, trigger, productNames }: AddItemDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddItemDialog({ onAdd, initialData, defaultOpen, onClose, trigger, productNames, getImageForProduct }: AddItemDialogProps) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      onClose?.();
+    }
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState(initialData?.name || "");
   const [quantity, setQuantity] = useState(initialData?.quantity?.toString() || "1");
   const [unit, setUnit] = useState(initialData?.unit || "unidades");
   const [expirationDate, setExpirationDate] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(initialData?.imageUrl || null);
+  const [autoImageApplied, setAutoImageApplied] = useState(false);
+
+  // Auto-associate image when product name matches a known product
+  useEffect(() => {
+    if (!getImageForProduct || !name.trim() || autoImageApplied) return;
+    // Only auto-suggest if there's no manually set image and no initialData image
+    if (imageUrl && !autoImageApplied) return;
+
+    const suggestedImage = getImageForProduct(name);
+    if (suggestedImage) {
+      setImageUrl(suggestedImage);
+      setAutoImageApplied(true);
+    }
+  }, [name, getImageForProduct, imageUrl, autoImageApplied]);
 
   const resetForm = () => {
     setName(initialData?.name || "");
     setQuantity(initialData?.quantity?.toString() || "1");
     setUnit(initialData?.unit || "unidades");
     setExpirationDate("");
+    setImageUrl(initialData?.imageUrl || null);
+    setAutoImageApplied(false);
+  };
+
+  const handlePhotoCapture = async (base64: string) => {
+    const compressed = await compressImageForStorage(base64);
+    setImageUrl(compressed);
+    setAutoImageApplied(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,9 +103,15 @@ export function AddItemDialog({ onAdd, initialData, trigger, productNames }: Add
     setIsLoading(true);
 
     try {
-      let imageUrl: string | undefined;
-      if (initialData?.imageUrl) {
-        imageUrl = await compressImageForStorage(initialData.imageUrl);
+      let finalImageUrl: string | undefined;
+      if (imageUrl) {
+        // If it's already compressed (auto-associated or from PhotoCapture), use as-is
+        // If from initialData, compress it
+        if (initialData?.imageUrl && imageUrl === initialData.imageUrl) {
+          finalImageUrl = await compressImageForStorage(imageUrl);
+        } else {
+          finalImageUrl = imageUrl;
+        }
       }
 
       await onAdd({
@@ -81,7 +121,7 @@ export function AddItemDialog({ onAdd, initialData, trigger, productNames }: Add
         expirationDate: expirationDate
           ? Timestamp.fromDate(new Date(expirationDate))
           : null,
-        ...(imageUrl && { imageUrl }),
+        ...(finalImageUrl && { imageUrl: finalImageUrl }),
       });
       setOpen(false);
       resetForm();
@@ -91,7 +131,7 @@ export function AddItemDialog({ onAdd, initialData, trigger, productNames }: Add
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || (
           <Button>
@@ -109,22 +149,48 @@ export function AddItemDialog({ onAdd, initialData, trigger, productNames }: Add
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {initialData?.imageUrl && (
-              <div className="flex justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={initialData.imageUrl}
-                  alt="Producto escaneado"
-                  className="h-24 w-24 rounded-lg object-cover border border-border/60"
-                />
-              </div>
-            )}
+            {/* Image section */}
+            <div className="flex items-center gap-3">
+              {imageUrl ? (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imageUrl}
+                    alt="Producto"
+                    className="h-20 w-20 rounded-lg object-cover border border-border/60"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setImageUrl(null); setAutoImageApplied(false); }}
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : null}
+              <PhotoCapture
+                onCapture={handlePhotoCapture}
+                isProcessing={false}
+                trigger={
+                  <Button type="button" variant="outline" size="sm">
+                    <Camera className="mr-2 h-4 w-4" />
+                    {imageUrl ? "Cambiar foto" : "Agregar foto"}
+                  </Button>
+                }
+                title="Foto del producto"
+                description="Toma una foto o sube una imagen del producto"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="name">Nombre del producto</Label>
               <Autocomplete
                 id="name"
                 value={name}
-                onChange={setName}
+                onChange={(val) => {
+                  setName(val);
+                  setAutoImageApplied(false);
+                }}
                 suggestions={productNames || []}
                 placeholder="ej. Leche, Arroz, Tomates..."
                 disabled={isLoading}

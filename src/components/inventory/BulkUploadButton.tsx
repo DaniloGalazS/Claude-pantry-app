@@ -36,7 +36,8 @@ import {
   Check,
 } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
-import type { PantryItem } from "@/types";
+import type { PantryItem, FoodCategory } from "@/types";
+import { FOOD_CATEGORIES } from "@/types";
 
 const VALID_UNITS = ["unidades", "kg", "g", "L", "ml", "paquetes", "latas", "botellas"];
 
@@ -84,6 +85,8 @@ const UNIT_NORMALIZATIONS: Record<string, string> = {
   "bottles": "botellas",
 };
 
+const VALID_CATEGORIES = FOOD_CATEGORIES.map((c) => c.value);
+
 const COLUMN_MAPPINGS: Record<string, string> = {
   // Spanish
   "nombre": "name",
@@ -94,6 +97,9 @@ const COLUMN_MAPPINGS: Record<string, string> = {
   "fecha_caducidad": "expirationDate",
   "vencimiento": "expirationDate",
   "fecha_vencimiento": "expirationDate",
+  "marca": "brand",
+  "categoria": "category",
+  "categoría": "category",
   // English
   "name": "name",
   "product": "name",
@@ -103,10 +109,14 @@ const COLUMN_MAPPINGS: Record<string, string> = {
   "expiration_date": "expirationDate",
   "expiry": "expirationDate",
   "expiry_date": "expirationDate",
+  "brand": "brand",
+  "category": "category",
 };
 
 interface ParsedItem {
   name: string;
+  brand: string;
+  category: FoodCategory | "";
   quantity: number;
   unit: string;
   expirationDate: Date | null;
@@ -187,6 +197,18 @@ function parseRow(row: Record<string, unknown>): ParsedItem {
     errors.push("Nombre requerido");
   }
 
+  const brand = normalizedRow.brand ? String(normalizedRow.brand).trim() : "";
+
+  let category: FoodCategory | "" = "";
+  if (normalizedRow.category !== undefined && normalizedRow.category !== "") {
+    const val = String(normalizedRow.category).trim().toLowerCase();
+    if (VALID_CATEGORIES.includes(val as FoodCategory)) {
+      category = val as FoodCategory;
+    } else {
+      errors.push(`Categoria invalida: ${normalizedRow.category}`);
+    }
+  }
+
   let quantity = 1;
   if (normalizedRow.quantity !== undefined && normalizedRow.quantity !== "") {
     const parsed = parseFloat(String(normalizedRow.quantity));
@@ -211,6 +233,8 @@ function parseRow(row: Record<string, unknown>): ParsedItem {
 
   return {
     name,
+    brand,
+    category,
     quantity,
     unit,
     expirationDate,
@@ -220,12 +244,12 @@ function parseRow(row: Record<string, unknown>): ParsedItem {
 }
 
 function generateTemplateCsv(): string {
-  const headers = ["nombre", "cantidad", "unidad", "caducidad"];
+  const headers = ["nombre", "marca", "categoria", "cantidad", "unidad", "caducidad"];
   const exampleRows = [
-    ["Leche", "2", "L", "2025-01-15"],
-    ["Arroz", "1", "kg", ""],
-    ["Tomates", "6", "unidades", "2025-01-10"],
-    ["Aceite de oliva", "1", "botellas", "2025-06-30"],
+    ["Leche", "Colun", "lacteos", "2", "L", "2025-01-15"],
+    ["Arroz", "", "granos", "1", "kg", ""],
+    ["Tomates", "", "verduras", "6", "unidades", "2025-01-10"],
+    ["Aceite de oliva", "Chef", "aceites", "1", "botellas", "2025-06-30"],
   ];
   return [headers.join(","), ...exampleRows.map((row) => row.join(","))].join("\n");
 }
@@ -239,7 +263,7 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
   const [importMode, setImportMode] = useState<ImportMode>("add");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", quantity: "", unit: "" });
+  const [editForm, setEditForm] = useState({ name: "", brand: "", category: "" as FoodCategory | "", quantity: "", unit: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -366,6 +390,8 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
     const item = parsedItems[index];
     setEditForm({
       name: item.name,
+      brand: item.brand,
+      category: item.category,
       quantity: String(item.quantity),
       unit: item.unit,
     });
@@ -375,7 +401,7 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
   const cancelEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingIndex(null);
-    setEditForm({ name: "", quantity: "", unit: "" });
+    setEditForm({ name: "", brand: "", category: "", quantity: "", unit: "" });
   };
 
   const saveEdit = (e: React.MouseEvent) => {
@@ -398,6 +424,8 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
           ? {
               ...item,
               name: editForm.name.trim(),
+              brand: editForm.brand.trim(),
+              category: editForm.category,
               quantity,
               unit: editForm.unit,
               error: null,
@@ -407,7 +435,7 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
       )
     );
     setEditingIndex(null);
-    setEditForm({ name: "", quantity: "", unit: "" });
+    setEditForm({ name: "", brand: "", category: "", quantity: "", unit: "" });
   };
 
   const deleteItem = (index: number, e: React.MouseEvent) => {
@@ -418,8 +446,10 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
   const handleSave = async () => {
     const selectedItems = parsedItems
       .filter((item) => item.selected && !item.error)
-      .map(({ name, quantity, unit, expirationDate }) => ({
+      .map(({ name, brand, category, quantity, unit, expirationDate }) => ({
         name,
+        ...(brand && { brand }),
+        ...(category && { category }),
         quantity,
         unit,
         expirationDate: expirationDate ? Timestamp.fromDate(expirationDate) : null,
@@ -504,6 +534,8 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
                 <p><strong>nombre</strong> - Nombre del producto (requerido)</p>
                 <p><strong>cantidad</strong> - Cantidad numerica (requerido)</p>
                 <p><strong>unidad</strong> - unidades, kg, g, L, ml, paquetes, latas, botellas</p>
+                <p><strong>marca</strong> - Marca del producto (opcional)</p>
+                <p><strong>categoria</strong> - frutas, verduras, lacteos, carnes, mariscos, granos, enlatados, condimentos, bebidas, snacks, panaderia, congelados, huevos, aceites, otros (opcional)</p>
                 <p><strong>caducidad</strong> - Fecha YYYY-MM-DD o DD/MM/YYYY (opcional)</p>
               </div>
             </div>
@@ -632,13 +664,30 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
                       onCheckedChange={() => toggleItem(index)}
                     />
                     {editingIndex === index ? (
-                      <div className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex-1 flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <Input
                           value={editForm.name}
                           onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                           placeholder="Nombre"
-                          className="h-8 flex-1"
+                          className="h-8 flex-1 min-w-[120px]"
                         />
+                        <Input
+                          value={editForm.brand}
+                          onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
+                          placeholder="Marca"
+                          className="h-8 w-24"
+                        />
+                        <Select value={editForm.category} onValueChange={(v) => setEditForm({ ...editForm, category: v as FoodCategory | "" })}>
+                          <SelectTrigger className="h-8 w-32">
+                            <SelectValue placeholder="Categoria" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Sin categoria</SelectItem>
+                            {FOOD_CATEGORIES.map((c) => (
+                              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Input
                           value={editForm.quantity}
                           onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
@@ -668,9 +717,13 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
                         <div className="flex-1 min-w-0">
                           <p className={`font-medium truncate ${item.error ? "text-destructive" : ""}`}>
                             {item.name || "(sin nombre)"}
+                            {item.brand && <span className="font-normal text-muted-foreground"> · {item.brand}</span>}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {item.quantity} {item.unit}
+                            {item.category && (
+                              <span> · {FOOD_CATEGORIES.find((c) => c.value === item.category)?.label}</span>
+                            )}
                             {item.expirationDate && (
                               <span> - Caduca: {item.expirationDate.toLocaleDateString()}</span>
                             )}
@@ -717,13 +770,30 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
                       onCheckedChange={() => toggleItem(index)}
                     />
                     {editingIndex === index ? (
-                      <div className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex-1 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <Input
                           value={editForm.name}
                           onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                           placeholder="Nombre"
-                          className="h-7 flex-1 text-sm"
+                          className="h-7 flex-1 min-w-[100px] text-sm"
                         />
+                        <Input
+                          value={editForm.brand}
+                          onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
+                          placeholder="Marca"
+                          className="h-7 w-20 text-sm"
+                        />
+                        <Select value={editForm.category} onValueChange={(v) => setEditForm({ ...editForm, category: v as FoodCategory | "" })}>
+                          <SelectTrigger className="h-7 w-28 text-sm">
+                            <SelectValue placeholder="Cat." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Sin cat.</SelectItem>
+                            {FOOD_CATEGORIES.map((c) => (
+                              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Input
                           value={editForm.quantity}
                           onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
@@ -753,10 +823,16 @@ export function BulkUploadButton({ onAddMultiple, onDeleteAll }: BulkUploadButto
                         <div className="flex-1 flex items-center gap-3 min-w-0">
                           <span className={`font-medium truncate ${item.error ? "text-destructive" : ""}`}>
                             {item.name || "(sin nombre)"}
+                            {item.brand && <span className="font-normal text-muted-foreground"> · {item.brand}</span>}
                           </span>
                           <span className="text-sm text-muted-foreground whitespace-nowrap">
                             {item.quantity} {item.unit}
                           </span>
+                          {item.category && (
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {FOOD_CATEGORIES.find((c) => c.value === item.category)?.label}
+                            </span>
+                          )}
                           {item.expirationDate && (
                             <span className="text-xs text-muted-foreground whitespace-nowrap">
                               {item.expirationDate.toLocaleDateString()}

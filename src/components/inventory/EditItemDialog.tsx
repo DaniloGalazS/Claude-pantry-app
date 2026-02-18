@@ -101,14 +101,18 @@ export function EditItemDialog({
     try {
       const updates: Partial<Omit<PantryItem, "id">> = {
         name,
-        brand: brand.trim() || undefined,
-        category: category || undefined,
         quantity: parseFloat(quantity),
         unit,
         expirationDate: expirationDate
           ? Timestamp.fromDate(new Date(expirationDate))
           : null,
       };
+
+      // Use deleteField() for optional fields when empty — passing undefined to updateDoc causes a Firestore internal error
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (updates as any).brand = brand.trim() || deleteField();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (updates as any).category = category || deleteField();
 
       if (imageUrl && imageUrl !== item.imageUrl) {
         updates.imageUrl = imageUrl;

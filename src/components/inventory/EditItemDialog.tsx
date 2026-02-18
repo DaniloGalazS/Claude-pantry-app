@@ -24,7 +24,8 @@ import { Loader2, Camera, X } from "lucide-react";
 import { Autocomplete } from "@/components/ui/autocomplete";
 import { PhotoCapture } from "@/components/inventory/PhotoCapture";
 import { compressImageForStorage } from "@/lib/imageUtils";
-import type { PantryItem } from "@/types";
+import type { PantryItem, FoodCategory } from "@/types";
+import { FOOD_CATEGORIES } from "@/types";
 
 const UNITS = [
   { value: "unidades", label: "Unidades" },
@@ -54,6 +55,8 @@ export function EditItemDialog({
 }: EditItemDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
+  const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState<FoodCategory | "">("");
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("unidades");
   const [expirationDate, setExpirationDate] = useState("");
@@ -63,6 +66,8 @@ export function EditItemDialog({
   useEffect(() => {
     if (item) {
       setName(item.name);
+      setBrand(item.brand || "");
+      setCategory(item.category || "");
       setQuantity(item.quantity.toString());
       setUnit(item.unit);
       setImageUrl(item.imageUrl || null);
@@ -96,6 +101,8 @@ export function EditItemDialog({
     try {
       const updates: Partial<Omit<PantryItem, "id">> = {
         name,
+        brand: brand.trim() || undefined,
+        category: category || undefined,
         quantity: parseFloat(quantity),
         unit,
         expirationDate: expirationDate
@@ -170,6 +177,33 @@ export function EditItemDialog({
                 suggestions={productNames || []}
                 disabled={isLoading}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-brand">Marca (opcional)</Label>
+                <Input
+                  id="edit-brand"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="ej. Colun, Carozzi..."
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category">Categoría</Label>
+                <Select value={category} onValueChange={(v) => setCategory(v as FoodCategory | "")} disabled={isLoading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FOOD_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

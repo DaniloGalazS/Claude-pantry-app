@@ -15,9 +15,31 @@ export interface Pantry {
   createdAt: Timestamp;
 }
 
+export const FOOD_CATEGORIES = [
+  { value: "frutas", label: "Frutas" },
+  { value: "verduras", label: "Verduras" },
+  { value: "lacteos", label: "Lácteos" },
+  { value: "carnes", label: "Carnes" },
+  { value: "mariscos", label: "Mariscos" },
+  { value: "granos", label: "Granos y cereales" },
+  { value: "enlatados", label: "Enlatados" },
+  { value: "condimentos", label: "Condimentos y salsas" },
+  { value: "bebidas", label: "Bebidas" },
+  { value: "snacks", label: "Snacks y dulces" },
+  { value: "panaderia", label: "Panadería" },
+  { value: "congelados", label: "Congelados" },
+  { value: "huevos", label: "Huevos" },
+  { value: "aceites", label: "Aceites y grasas" },
+  { value: "otros", label: "Otros" },
+] as const;
+
+export type FoodCategory = typeof FOOD_CATEGORIES[number]["value"];
+
 export interface PantryItem {
   id: string;
   name: string;
+  brand?: string;
+  category?: FoodCategory;
   quantity: number;
   unit: string; // "unidades", "kg", "L", "g", etc.
   expirationDate: Timestamp | null;
@@ -98,6 +120,8 @@ export interface RecipeFilters {
 
 export interface VisionIdentifyResponse {
   name: string;
+  brand?: string;
+  category?: FoodCategory;
   suggestedQuantity: number;
   suggestedUnit: string;
   confidence: number;
@@ -140,4 +164,30 @@ export interface ShoppingListItem {
   unit: string;
   available: number;
   toBuy: number;
+}
+
+export const DIET_TYPES = [
+  { value: "omnivoro", label: "Omnívoro" },
+  { value: "vegetariano", label: "Vegetariano" },
+  { value: "vegano", label: "Vegano" },
+  { value: "keto", label: "Keto / Cetogénico" },
+  { value: "paleo", label: "Paleo" },
+  { value: "sinGluten", label: "Sin gluten" },
+  { value: "sinLactosa", label: "Sin lactosa" },
+] as const;
+
+export const ALLERGY_OPTIONS = [
+  { value: "nueces", label: "Frutos secos" },
+  { value: "mariscos", label: "Mariscos y pescado" },
+  { value: "gluten", label: "Gluten (trigo, cebada)" },
+  { value: "lactosa", label: "Lácteos / Lactosa" },
+  { value: "huevo", label: "Huevo" },
+  { value: "mani", label: "Maní / Cacahuete" },
+  { value: "soya", label: "Soya" },
+] as const;
+
+export interface DietaryProfile {
+  dietType: string | null;
+  allergies: string[];
+  avoidIngredients: string[];
 }

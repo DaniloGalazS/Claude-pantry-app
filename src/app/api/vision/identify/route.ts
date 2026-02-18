@@ -48,7 +48,9 @@ export async function POST(request: NextRequest) {
               text: `Analiza esta imagen de un producto alimenticio y proporciona la siguiente informacion en formato JSON:
 
 {
-  "name": "nombre del producto en espanol",
+  "name": "nombre del producto en espanol (generico, sin marca)",
+  "brand": "marca del producto si es visible, si no se ve pon null",
+  "category": "categoria del producto, elige UNA de: frutas, verduras, lacteos, carnes, mariscos, granos, enlatados, condimentos, bebidas, snacks, panaderia, congelados, huevos, aceites, otros",
   "suggestedQuantity": numero sugerido de cantidad,
   "suggestedUnit": "unidad sugerida (unidades, kg, g, L, ml, paquetes, latas, botellas)",
   "confidence": numero del 0 al 1 indicando tu nivel de confianza
@@ -57,6 +59,8 @@ export async function POST(request: NextRequest) {
 Si no puedes identificar el producto o no es un alimento, responde con:
 {
   "name": null,
+  "brand": null,
+  "category": null,
   "suggestedQuantity": null,
   "suggestedUnit": null,
   "confidence": 0,

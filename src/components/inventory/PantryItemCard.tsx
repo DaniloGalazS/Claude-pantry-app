@@ -12,10 +12,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2, ArrowRightLeft, AlertTriangle, Clock, CalendarDays, Package } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, ArrowRightLeft, AlertTriangle, Clock, CalendarDays, Package, Tag } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImagePreviewDialog } from "./ImagePreviewDialog";
 import type { PantryItem } from "@/types";
+import { FOOD_CATEGORIES } from "@/types";
 
 interface PantryItemCardProps {
   item: PantryItem;
@@ -120,6 +121,17 @@ export function PantryItemCard({ item, onEdit, onDelete, onMove, selected, onTog
                 </Badge>
               )}
             </div>
+            {item.brand && (
+              <p className="text-xs text-muted-foreground truncate">{item.brand}</p>
+            )}
+            {item.category && (
+              <div className="flex items-center gap-1">
+                <Badge variant="secondary" className="text-xs gap-1 px-1.5 py-0">
+                  <Tag className="h-2.5 w-2.5" />
+                  {FOOD_CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category}
+                </Badge>
+              </div>
+            )}
             <div className="flex items-center gap-1">
               <span className="text-sm font-medium text-primary">
                 {item.quantity} {item.unit}

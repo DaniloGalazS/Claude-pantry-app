@@ -4,10 +4,11 @@ import { useState } from "react";
 import { Timestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, ArrowRightLeft, AlertTriangle, Clock, Package } from "lucide-react";
+import { Pencil, Trash2, ArrowRightLeft, AlertTriangle, Clock, Package, Tag } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImagePreviewDialog } from "./ImagePreviewDialog";
 import type { PantryItem } from "@/types";
+import { FOOD_CATEGORIES } from "@/types";
 
 interface PantryItemRowProps {
   item: PantryItem;
@@ -95,9 +96,22 @@ export function PantryItemRow({ item, onEdit, onDelete, onMove, selected, onTogg
         </div>
       )}
 
-      {/* Name and badge */}
+      {/* Name, brand and badge */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className="font-medium truncate">{item.name}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-medium truncate">{item.name}</span>
+            {item.brand && (
+              <span className="text-xs text-muted-foreground truncate hidden sm:inline">{item.brand}</span>
+            )}
+          </div>
+          {item.category && (
+            <Badge variant="secondary" className="text-xs gap-1 px-1.5 py-0 mt-0.5">
+              <Tag className="h-2.5 w-2.5" />
+              {FOOD_CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category}
+            </Badge>
+          )}
+        </div>
         {status === "expired" && (
           <Badge variant="destructive" className="text-xs shrink-0">
             <AlertTriangle className="mr-1 h-3 w-3" />

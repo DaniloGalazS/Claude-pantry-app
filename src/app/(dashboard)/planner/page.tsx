@@ -5,6 +5,7 @@ import { usePantryItems } from "@/hooks/usePantryItems";
 import { usePantryContext } from "@/contexts/PantryContext";
 import { useSavedRecipes } from "@/hooks/useSavedRecipes";
 import { useMealPlans } from "@/hooks/useMealPlans";
+import { useDietaryProfile } from "@/hooks/useDietaryProfile";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -130,6 +131,7 @@ export default function PlannerPage() {
   const { toast } = useToast();
   const { saveRecipe, isRecipeSaved } = useSavedRecipes();
   const { mealPlans, loading: plansLoading, saveMealPlan, deleteMealPlan } = useMealPlans();
+  const { profile: dietaryProfile } = useDietaryProfile();
 
   const today = getTodayISO();
 
@@ -211,7 +213,7 @@ export default function PlannerPage() {
       const response = await fetch("/api/planner/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pantryItems, config }),
+        body: JSON.stringify({ pantryItems, config, dietaryProfile }),
       });
 
       if (!response.ok) {
@@ -269,6 +271,7 @@ export default function PlannerPage() {
             mealTypes: [meal.mealType],
             servings: config.servings,
           },
+          dietaryProfile,
         }),
       });
 

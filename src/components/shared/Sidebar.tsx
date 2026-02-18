@@ -24,8 +24,11 @@ import {
   Leaf,
   PanelLeftClose,
   PanelLeftOpen,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
+import { useTheme } from "next-themes";
 import { PantrySelector } from "./PantrySelector";
 
 const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
@@ -40,6 +43,7 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -175,16 +179,16 @@ export function Sidebar() {
             <div className="h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
           </div>
 
-          {/* Toggle collapse button — desktop only */}
-          <div className="hidden lg:block px-2 pb-2">
+          {/* Toggle collapse + dark mode buttons — desktop only */}
+          <div className="hidden lg:flex px-2 pb-2 gap-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleCollapsed}
               title={collapsed ? "Expandir menu" : "Colapsar menu"}
               className={cn(
-                "text-sidebar-foreground hover:bg-white/8 hover:text-white rounded-lg h-9",
-                collapsed && mounted ? "w-full" : "w-9"
+                "text-sidebar-foreground hover:bg-white/8 hover:text-white rounded-lg h-9 flex-1",
+                collapsed && mounted ? "w-full" : "w-9 flex-none"
               )}
             >
               {collapsed && mounted ? (
@@ -193,6 +197,21 @@ export function Sidebar() {
                 <PanelLeftClose className="h-4 w-4" />
               )}
             </Button>
+            {mounted && !collapsed && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                title={resolvedTheme === "dark" ? "Modo claro" : "Modo oscuro"}
+                className="text-sidebar-foreground hover:bg-white/8 hover:text-white rounded-lg h-9 w-9"
+              >
+                {resolvedTheme === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </Button>
+            )}
           </div>
 
           {/* User menu */}

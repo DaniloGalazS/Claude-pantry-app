@@ -5,6 +5,7 @@ import { usePantryItems } from "@/hooks/usePantryItems";
 import { usePantryContext } from "@/contexts/PantryContext";
 import { useCookedRecipes } from "@/hooks/useCookedRecipes";
 import { useSavedRecipes } from "@/hooks/useSavedRecipes";
+import { useDietaryProfile } from "@/hooks/useDietaryProfile";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { RecipeFilters } from "@/components/recipes/RecipeFilters";
 import { calculateAvailability } from "@/lib/recipeUtils";
@@ -54,6 +55,7 @@ export default function RecipesPage() {
     removeSavedRecipe,
     isRecipeSaved,
   } = useSavedRecipes();
+  const { profile: dietaryProfile } = useDietaryProfile();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [filters, setFilters] = useState<Filters>({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -105,6 +107,7 @@ export default function RecipesPage() {
           pantryItems,
           filters,
           maxMissingPercentage: 20,
+          dietaryProfile,
         }),
       });
 

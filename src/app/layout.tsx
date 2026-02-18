@@ -3,6 +3,7 @@ import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from "next-themes";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -26,12 +27,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${dmSerif.variable} font-sans`}>
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

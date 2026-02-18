@@ -6,7 +6,7 @@ import { AddItemDialog } from "./AddItemDialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Camera } from "lucide-react";
-import type { PantryItem } from "@/types";
+import type { PantryItem, FoodCategory } from "@/types";
 
 interface ScanProductButtonProps {
   onAdd: (item: Omit<PantryItem, "id" | "addedAt" | "pantryId">) => Promise<string>;
@@ -16,6 +16,8 @@ export function ScanProductButton({ onAdd }: ScanProductButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [scannedData, setScannedData] = useState<{
     name: string;
+    brand?: string;
+    category?: FoodCategory;
     quantity: number;
     unit: string;
     imageUrl?: string;
@@ -44,6 +46,8 @@ export function ScanProductButton({ onAdd }: ScanProductButtonProps) {
 
       setScannedData({
         name: data.name,
+        ...(data.brand && { brand: data.brand }),
+        ...(data.category && { category: data.category }),
         quantity: data.suggestedQuantity || 1,
         unit: data.suggestedUnit || "unidades",
         imageUrl: imageBase64,

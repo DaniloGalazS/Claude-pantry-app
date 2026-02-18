@@ -20,7 +20,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Package, AlertTriangle, Loader2, LayoutGrid, List } from "lucide-react";
-import type { PantryItem } from "@/types";
+import type { PantryItem, FoodCategory } from "@/types";
+import { FOOD_CATEGORIES } from "@/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function getExpiringItemsCount(items: PantryItem[]): number {
   const now = new Date();
@@ -49,6 +57,7 @@ export default function InventoryPage() {
   const { productNames } = useProductNames();
   const { getImageForProduct, saveProductImage } = useProductImages();
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<FoodCategory | "all">("all");
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [movingItem, setMovingItem] = useState<PantryItem | null>(null);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
@@ -63,10 +72,20 @@ export default function InventoryPage() {
   }, [activePantryId]);
 
   const filteredItems = useMemo(() => {
-    if (!searchQuery) return items;
-    const query = searchQuery.toLowerCase();
-    return items.filter((item) => item.name.toLowerCase().includes(query));
-  }, [items, searchQuery]);
+    let result = items;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (item) =>
+          item.name.toLowerCase().includes(query) ||
+          item.brand?.toLowerCase().includes(query)
+      );
+    }
+    if (categoryFilter !== "all") {
+      result = result.filter((item) => item.category === categoryFilter);
+    }
+    return result;
+  }, [items, searchQuery, categoryFilter]);
 
   const expiringCount = useMemo(() => getExpiringItemsCount(items), [items]);
   const expiredCount = useMemo(() => getExpiredItemsCount(items), [items]);
@@ -251,16 +270,29 @@ export default function InventoryPage() {
       )}
 
       {/* Search and view toggle */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar productos..."
+            placeholder="Buscar productos o marca..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-11 bg-card"
           />
         </div>
+        <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as FoodCategory | "all")}>
+          <SelectTrigger className="w-44 h-11 bg-card">
+            <SelectValue placeholder="Categoría" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las categorías</SelectItem>
+            {FOOD_CATEGORIES.map((c) => (
+              <SelectItem key={c.value} value={c.value}>
+                {c.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-1 border rounded-lg p-1 bg-card">
           <Button
             variant={viewMode === "cards" ? "secondary" : "ghost"}

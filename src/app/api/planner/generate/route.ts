@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, CLAUDE_MODEL } from "@/lib/anthropic";
-import type { PantryItem, MealPlanConfig, MealType } from "@/types";
+import type { PantryItem, MealPlanConfig, MealType, DietaryProfile } from "@/types";
 
 export const maxDuration = 60;
 
 interface GenerateRequest {
   pantryItems: PantryItem[];
   config: MealPlanConfig;
+  dietaryProfile?: DietaryProfile;
 }
 
 const VALID_MEAL_TYPES: MealType[] = [
@@ -52,11 +53,28 @@ function parseClaudeJSON(text: string): unknown {
   return JSON.parse(jsonText);
 }
 
+function buildDietaryInstructions(dietaryProfile?: DietaryProfile): string {
+  if (!dietaryProfile) return "";
+  const lines: string[] = [];
+  if (dietaryProfile.dietType && dietaryProfile.dietType !== "ninguno") {
+    lines.push(`- Tipo de dieta: ${dietaryProfile.dietType} — respetar estrictamente`);
+  }
+  if (dietaryProfile.allergies && dietaryProfile.allergies.length > 0) {
+    lines.push(`- Alergias / intolerancias (EXCLUIR completamente): ${dietaryProfile.allergies.join(", ")}`);
+  }
+  if (dietaryProfile.avoidIngredients && dietaryProfile.avoidIngredients.length > 0) {
+    lines.push(`- Ingredientes a evitar: ${dietaryProfile.avoidIngredients.join(", ")}`);
+  }
+  if (lines.length === 0) return "";
+  return `\nPERFIL DIETETICO DEL USUARIO (respetar obligatoriamente):\n${lines.join("\n")}\n`;
+}
+
 function buildPrompt(
   ingredientsList: string,
   config: MealPlanConfig,
   dates: string[],
-  mealTypeLabels: string
+  mealTypeLabels: string,
+  dietaryProfile?: DietaryProfile
 ): string {
   return `Eres un chef experto y nutricionista. Genera un plan de comidas completo.
 
@@ -68,7 +86,7 @@ CONFIGURACION:
 - Comidas por dia: ${mealTypeLabels}
 - Porciones por comida: ${config.servings}
 - Fechas exactas: ${dates.join(", ")}
-
+${buildDietaryInstructions(dietaryProfile)}
 REGLAS:
 1. Genera exactamente una receta por tipo de comida por dia
 2. Prioriza ingredientes disponibles — al menos 80% de ingredientes de cada receta deben estar disponibles
@@ -129,7 +147,7 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de codigo markdown.`;
 
 export async function POST(request: NextRequest) {
   try {
-    const { pantryItems, config }: GenerateRequest = await request.json();
+    const { pantryItems, config, dietaryProfile }: GenerateRequest = await request.json();
 
     // Validation
     if (!pantryItems || pantryItems.length === 0) {
@@ -210,7 +228,8 @@ export async function POST(request: NextRequest) {
           ingredientsList,
           chunkConfig,
           chunkDates,
-          mealTypeLabels
+          mealTypeLabels,
+          dietaryProfile
         );
 
         const response = await client.messages.create({
@@ -268,7 +287,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Single request for smaller plans
-    const prompt = buildPrompt(ingredientsList, config, dates, mealTypeLabels);
+    const prompt = buildPrompt(ingredientsList, config, dates, mealTypeLabels, dietaryProfile);
 
     const response = await client.messages.create({
       model: CLAUDE_MODEL,

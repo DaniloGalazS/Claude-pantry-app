@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -12,16 +13,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { updateProfile, updatePassword } from "firebase/auth";
-import { Loader2, User, Lock, LogOut } from "lucide-react";
+import { Loader2, User, Lock, LogOut, Sun, Moon, Monitor, Utensils } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { PantryManagement } from "@/components/settings/PantryManagement";
+import { useDietaryProfile } from "@/hooks/useDietaryProfile";
+import { DIET_TYPES, ALLERGY_OPTIONS } from "@/types";
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile } = useDietaryProfile();
 
   const [name, setName] = useState(user?.displayName || "");
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
@@ -29,6 +43,38 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  // Dietary profile local state
+  const [dietType, setDietType] = useState<string>("");
+  const [allergies, setAllergies] = useState<string[]>([]);
+  const [avoidIngredients, setAvoidIngredients] = useState("");
+
+  // Sync dietary profile from Firestore when loaded
+  const [dietSynced, setDietSynced] = useState(false);
+  if (!profileLoading && !dietSynced) {
+    setDietSynced(true);
+    setDietType(profile.dietType || "");
+    setAllergies(profile.allergies);
+    setAvoidIngredients(profile.avoidIngredients.join(", "));
+  }
+
+  const handleSaveDietaryProfile = async () => {
+    await saveProfile({
+      dietType: dietType || null,
+      allergies,
+      avoidIngredients: avoidIngredients
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    });
+    toast({ title: "Preferencias guardadas", description: "Tu perfil dietetico se actualizo correctamente" });
+  };
+
+  const toggleAllergy = (value: string) => {
+    setAllergies((prev) =>
+      prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]
+    );
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +207,127 @@ export default function SettingsPage() {
       </Card>
 
       <PantryManagement />
+
+      {/* Appearance */}
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Sun className="h-4 w-4 text-primary" />
+            </div>
+            Apariencia
+          </CardTitle>
+          <CardDescription>Elige el tema visual de la aplicacion</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { value: "light", label: "Claro", icon: Sun },
+              { value: "dark", label: "Oscuro", icon: Moon },
+              { value: "system", label: "Sistema", icon: Monitor },
+            ].map(({ value, label, icon: Icon }) => (
+              <Button
+                key={value}
+                variant={theme === value ? "default" : "outline"}
+                className="gap-2"
+                onClick={() => setTheme(value)}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dietary profile */}
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Utensils className="h-4 w-4 text-primary" />
+            </div>
+            Perfil dietetico
+          </CardTitle>
+          <CardDescription>
+            Tus preferencias alimentarias se usan al generar recetas y planes de comida
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {profileLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Cargando preferencias...
+            </div>
+          ) : (
+            <>
+              {/* Diet type */}
+              <div className="space-y-2">
+                <Label>Tipo de dieta</Label>
+                <Select value={dietType} onValueChange={setDietType}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Selecciona tu dieta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ninguno">Sin preferencia</SelectItem>
+                    {DIET_TYPES.map((d) => (
+                      <SelectItem key={d.value} value={d.value}>
+                        {d.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Allergies */}
+              <div className="space-y-2">
+                <Label>Alergias e intolerancias</Label>
+                <div className="flex flex-wrap gap-x-6 gap-y-3 pt-1">
+                  {ALLERGY_OPTIONS.map((a) => (
+                    <div key={a.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`allergy-${a.value}`}
+                        checked={allergies.includes(a.value)}
+                        onCheckedChange={() => toggleAllergy(a.value)}
+                      />
+                      <Label htmlFor={`allergy-${a.value}`} className="cursor-pointer font-normal">
+                        {a.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Avoid ingredients */}
+              <div className="space-y-2">
+                <Label htmlFor="avoidIngredients">Ingredientes a evitar</Label>
+                <Textarea
+                  id="avoidIngredients"
+                  placeholder="Ej: cilantro, picante, aceitunas (separados por coma)"
+                  value={avoidIngredients}
+                  onChange={(e) => setAvoidIngredients(e.target.value)}
+                  className="resize-none"
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ingresa ingredientes separados por coma
+                </p>
+              </div>
+
+              <Button onClick={handleSaveDietaryProfile} disabled={profileSaving}>
+                {profileSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar preferencias"
+                )}
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-border/60">
         <CardHeader>

@@ -25,7 +25,8 @@ import { Plus, Loader2, Camera, X } from "lucide-react";
 import { Autocomplete } from "@/components/ui/autocomplete";
 import { PhotoCapture } from "@/components/inventory/PhotoCapture";
 import { compressImageForStorage } from "@/lib/imageUtils";
-import type { PantryItem } from "@/types";
+import type { PantryItem, FoodCategory } from "@/types";
+import { FOOD_CATEGORIES } from "@/types";
 
 const UNITS = [
   { value: "unidades", label: "Unidades" },
@@ -42,6 +43,8 @@ interface AddItemDialogProps {
   onAdd: (item: Omit<PantryItem, "id" | "addedAt" | "pantryId">) => Promise<string>;
   initialData?: {
     name?: string;
+    brand?: string;
+    category?: FoodCategory;
     quantity?: number;
     unit?: string;
     imageUrl?: string;
@@ -64,6 +67,8 @@ export function AddItemDialog({ onAdd, initialData, defaultOpen, onClose, trigge
   };
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState(initialData?.name || "");
+  const [brand, setBrand] = useState(initialData?.brand || "");
+  const [category, setCategory] = useState<FoodCategory | "">(initialData?.category || "");
   const [quantity, setQuantity] = useState(initialData?.quantity?.toString() || "1");
   const [unit, setUnit] = useState(initialData?.unit || "unidades");
   const [expirationDate, setExpirationDate] = useState("");
@@ -85,6 +90,8 @@ export function AddItemDialog({ onAdd, initialData, defaultOpen, onClose, trigge
 
   const resetForm = () => {
     setName(initialData?.name || "");
+    setBrand(initialData?.brand || "");
+    setCategory(initialData?.category || "");
     setQuantity(initialData?.quantity?.toString() || "1");
     setUnit(initialData?.unit || "unidades");
     setExpirationDate("");
@@ -116,6 +123,8 @@ export function AddItemDialog({ onAdd, initialData, defaultOpen, onClose, trigge
 
       await onAdd({
         name,
+        ...(brand.trim() && { brand: brand.trim() }),
+        ...(category && { category }),
         quantity: parseFloat(quantity),
         unit,
         expirationDate: expirationDate
@@ -195,6 +204,33 @@ export function AddItemDialog({ onAdd, initialData, defaultOpen, onClose, trigge
                 placeholder="ej. Leche, Arroz, Tomates..."
                 disabled={isLoading}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="brand">Marca (opcional)</Label>
+                <Input
+                  id="brand"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="ej. Colun, Carozzi..."
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoría</Label>
+                <Select value={category} onValueChange={(v) => setCategory(v as FoodCategory | "")} disabled={isLoading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FOOD_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, CLAUDE_MODEL } from "@/lib/anthropic";
-import type { PantryItem, RecipeFilters } from "@/types";
+import type { PantryItem, RecipeFilters, DietaryProfile } from "@/types";
 
 export const maxDuration = 45;
 
@@ -8,11 +8,12 @@ interface GenerateRequest {
   pantryItems: PantryItem[];
   filters?: RecipeFilters;
   maxMissingPercentage?: number;
+  dietaryProfile?: DietaryProfile;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { pantryItems, filters, maxMissingPercentage = 20 }: GenerateRequest =
+    const { pantryItems, filters, maxMissingPercentage = 20, dietaryProfile }: GenerateRequest =
       await request.json();
 
     if (!pantryItems || pantryItems.length === 0) {
@@ -46,6 +47,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let dietaryInstructions = "";
+    if (dietaryProfile) {
+      if (dietaryProfile.dietType && dietaryProfile.dietType !== "ninguno") {
+        dietaryInstructions += `- Tipo de dieta del usuario: ${dietaryProfile.dietType} — respeta estrictamente\n`;
+      }
+      if (dietaryProfile.allergies && dietaryProfile.allergies.length > 0) {
+        dietaryInstructions += `- Alergias / intolerancias (EXCLUIR completamente): ${dietaryProfile.allergies.join(", ")}\n`;
+      }
+      if (dietaryProfile.avoidIngredients && dietaryProfile.avoidIngredients.length > 0) {
+        dietaryInstructions += `- Ingredientes a evitar: ${dietaryProfile.avoidIngredients.join(", ")}\n`;
+      }
+    }
+
     console.log("Generating recipes with model:", CLAUDE_MODEL);
     console.log("Ingredients:", ingredientsList);
 
@@ -68,6 +82,7 @@ REGLAS IMPORTANTES:
 5. Incluye informacion nutricional estimada POR PORCION para cada receta
 
 ${filterInstructions ? `FILTROS:\n${filterInstructions}` : ""}
+${dietaryInstructions ? `PERFIL DIETETICO DEL USUARIO (respetar obligatoriamente):\n${dietaryInstructions}` : ""}
 
 Responde en formato JSON con la siguiente estructura:
 {
